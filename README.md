@@ -1,4 +1,4 @@
-# back_semob-scs
+# Backend do Projeto SEMOB-SCS
 
 Backend Python para integração com o aplicativo Dart/Flutter por meio de uma API HTTP que troca dados em JSON.
 
@@ -29,7 +29,7 @@ O `requirements.txt` inclui FastAPI e Uvicorn. O FastAPI define as rotas da API;
 Quando houver um arquivo `main.py` com uma instância chamada `app`, execute:
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn src.app.main:app --reload
 ```
 
 Durante o desenvolvimento, a API ficará disponível em `http://localhost:8000` e a documentação interativa em `http://localhost:8000/docs`.
