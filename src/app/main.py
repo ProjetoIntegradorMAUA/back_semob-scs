@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 app = FastAPI()
 
-@app.get("/")
-def get_route():
-    return {"mensagem": "Funcionando"}
+
+@app.get("/teste")
+def get_rota_teste():
+    return {"mensagem": "Teste Funcionando"}
