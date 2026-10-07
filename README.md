@@ -29,7 +29,7 @@ O `requirements.txt` inclui FastAPI e Uvicorn. O FastAPI define as rotas da API;
 Quando houver um arquivo `main.py` com uma instância chamada `app`, execute:
 
 ```bash
-uvicorn main:app --reload
+uvicorn app.main:app --reload
 ```
 
 Durante o desenvolvimento, a API ficará disponível em `http://localhost:8000` e a documentação interativa em `http://localhost:8000/docs`.
