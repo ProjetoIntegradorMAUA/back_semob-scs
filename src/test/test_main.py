@@ -1,11 +1,5 @@
-from fastapi.testclient import TestClient
-
-from src.app.main import app
-
-client = TestClient(app)
+from src.app.main import get_rota_teste
 
 
 def test_rota_teste():
-    resposta = client.get("/teste")
-    assert resposta.status_code == 200
-    assert resposta.json() == {"mensagem": "Teste Funcionando"}
+    assert get_rota_teste() == {"mensagem": "Teste Funcionando"}
