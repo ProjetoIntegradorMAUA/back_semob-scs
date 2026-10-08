@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 
 from src.app.repositories.user_repository import (
     create_user,
+    delete_user_by_id,
     get_user_by_id,
     get_users,
     get_users_by_name,
@@ -40,3 +41,10 @@ def ler_usuario_por_id(user_id: str):
 @router.get("/by-name/{user_name}", response_model=list[UserResponse])
 def ler_usuario_por_nome(user_name: str):
     return get_users_by_name(user_name)
+
+@router.delete("/{user_id}", response_model=UserResponse)
+def deletar_usuario_por_id(user_id:str):
+    user = delete_user_by_id(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    return user

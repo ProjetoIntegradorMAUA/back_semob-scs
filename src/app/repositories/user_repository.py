@@ -41,3 +41,18 @@ def get_users_by_name(name: str):
         {"id": str(user["_id"]), "nome": user["nome"], "email": user["email"]}
         for user in resultado
     ]
+
+
+def delete_user_by_id(user_id: str):
+    if not ObjectId.is_valid(user_id):
+        return None
+
+    user = colecao.find_one_and_delete({"_id": ObjectId(user_id)})
+    if user is None:
+        return None
+
+    return {
+        "id": str(user["_id"]),
+        "nome": user["nome"],
+        "email": user["email"],
+    }
