@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 from src.app.schemas.user import UserLogin
 from src.app.services.auth_service import verifica_senha_gera_jwt
 
-router = APIRouter(prefix="/auth")
+router = APIRouter(prefix="/api/auth")
 
 
 @router.post("/login")

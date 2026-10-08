@@ -11,7 +11,7 @@ from src.app.repositories.user_repository import (
 )
 from src.app.schemas.user import UserCreate, UserResponse, UserUpdate
 
-router = APIRouter(prefix="/users")
+router = APIRouter(prefix="/api/users")
 
 password_hash = PasswordHash.recommended()
 
