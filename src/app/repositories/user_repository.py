@@ -77,3 +77,19 @@ def update_user_by_id(user_id: str, dados: dict):
         "nome": user["nome"],
         "email": user["email"],
     }
+
+
+def get_user_by_email(email: str):  # para o service de auth
+    if not email:
+        return None
+
+    user = colecao.find_one({"email": email})
+
+    if user is None:
+        return None
+
+    return {
+        "id": str(user["_id"]),
+        "email": user["email"],
+        "senha_hash": user["senha_hash"],
+    }
