@@ -6,8 +6,9 @@ from src.app.repositories.user_repository import (
     get_user_by_id,
     get_users,
     get_users_by_name,
+    update_user_by_id,
 )
-from src.app.schemas.user import UserCreate, UserResponse
+from src.app.schemas.user import UserCreate, UserResponse, UserUpdate
 
 router = APIRouter(prefix="/users")
 
@@ -41,6 +42,19 @@ def ler_usuario_por_id(user_id: str):
 @router.get("/by-name/{user_name}", response_model=list[UserResponse])
 def ler_usuario_por_nome(user_name: str):
     return get_users_by_name(user_name)
+
+
+@router.patch("/{user_id}", response_model=UserResponse)
+def atualizar_usuario_por_id(user_id: str, usuario: UserUpdate):
+    dados = usuario.model_dump(exclude_unset=True, exclude_none=True)
+    if not dados:
+        raise HTTPException(status_code=400, detail="Informe ao menos um campo para atualizar.")
+
+    user = update_user_by_id(user_id, dados)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    return user
+
 
 @router.delete("/{user_id}", response_model=UserResponse)
 def deletar_usuario_por_id(user_id:str):

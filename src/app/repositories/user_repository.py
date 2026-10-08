@@ -1,4 +1,5 @@
 from bson import ObjectId
+from pymongo import ReturnDocument
 
 from src.app.db.session import client
 
@@ -48,6 +49,26 @@ def delete_user_by_id(user_id: str):
         return None
 
     user = colecao.find_one_and_delete({"_id": ObjectId(user_id)})
+    if user is None:
+        return None
+
+    return {
+        "id": str(user["_id"]),
+        "nome": user["nome"],
+        "email": user["email"],
+    }
+
+
+def update_user_by_id(user_id: str, dados: dict):
+    if not ObjectId.is_valid(user_id):
+        return None
+
+    user = colecao.find_one_and_update(
+        {"_id": ObjectId(user_id)},
+        {"$set": dados},
+        {"nome": 1, "email": 1},
+        return_document=ReturnDocument.AFTER,
+    )
     if user is None:
         return None
 
