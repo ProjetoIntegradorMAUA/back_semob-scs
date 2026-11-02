@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.app.api.routes.api_info import router as api_info_router
 from src.app.api.routes.alerts import router as alerts_router
 from src.app.api.routes.auth import router as auth_router
 from src.app.api.routes.dashboard import router as dashboard_router
@@ -51,6 +52,7 @@ app.add_middleware(
 )
 app.middleware("http")(trace_request)
 
+app.include_router(api_info_router)
 app.include_router(health_router)
 for router in (
     auth_router,
@@ -67,6 +69,6 @@ for router in (
     app.include_router(router, prefix=settings.api_v1_prefix)
 
 
-@app.get("/teste", deprecated=True)
+@app.get("/teste", deprecated=True, include_in_schema=False)
 def get_rota_teste():
     return {"mensagem": "Teste Funcionando"}
