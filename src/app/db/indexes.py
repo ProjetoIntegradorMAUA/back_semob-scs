@@ -14,5 +14,10 @@ def ensure_indexes(database: Database) -> None:
     database.financials.create_index("date", unique=True)
     database.alerts.create_index([("date", DESCENDING), ("status", ASCENDING)])
     database.alerts.create_index("severity")
+    database.alerts.create_index(
+        [("rule_code", ASCENDING), ("date", ASCENDING), ("line_code", ASCENDING)],
+        unique=True,
+        partialFilterExpression={"rule_code": {"$type": "string"}},
+    )
     database.preferences.create_index("user_id", unique=True)
     database.report_jobs.create_index([("created_at", DESCENDING)])

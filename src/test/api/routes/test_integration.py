@@ -17,8 +17,18 @@ USER = {"id": "66f000000000000000000001", "email": "gestor@semob.test", "ativo":
 
 
 class FakeOperationRepository:
-    def __init__(self):
+    def __init__(self, rows=None):
         self.imported = []
+        self.rows = rows or [
+            {
+                "date": datetime(2026, 8, 1),
+                "line_code": None,
+                "scheduled_trips": 100,
+                "completed_trips": 98,
+                "productive_km": 700,
+                "deadhead_km": 20,
+            }
+        ]
 
     def create(self, data):
         return {
@@ -29,16 +39,7 @@ class FakeOperationRepository:
         }
 
     def find_range(self, start_date, end_date):
-        return [
-            {
-                "date": datetime(2026, 8, 1),
-                "line_code": None,
-                "scheduled_trips": 100,
-                "completed_trips": 98,
-                "productive_km": 700,
-                "deadhead_km": 20,
-            }
-        ]
+        return self.rows
 
     def upsert_many(self, rows):
         self.imported = rows
@@ -59,8 +60,18 @@ class FakeSeriesRepository:
 
 
 class FakeAlertRepository:
+    def __init__(self):
+        self.generated = []
+
     def count_open(self, start_date, end_date):
         return 3
+
+    def upsert_generated(self, item):
+        self.generated.append(item)
+        return True
+
+    def resolve_stale_generated(self, start_date, end_date, active_keys):
+        return 0
 
 
 def _override_dashboard_dependencies():
@@ -188,3 +199,55 @@ def test_smart_report_upload_rejects_unknown_html():
 
     assert response.status_code == 422
     assert "Tabela esperada" in response.json()["detail"]
+
+
+def test_generate_alerts_endpoint_detects_anomaly():
+    operations = FakeOperationRepository(
+        [
+            {
+                "date": datetime(2026, 8, 1),
+                "line_code": "01",
+                "scheduled_trips": 100,
+                "completed_trips": 90,
+                "productive_km": 980,
+                "deadhead_km": 20,
+            }
+        ]
+    )
+    financials = FakeSeriesRepository([])
+    alerts = FakeAlertRepository()
+    app.dependency_overrides[get_current_user] = lambda: USER
+    app.dependency_overrides[get_operation_repository] = lambda: operations
+    app.dependency_overrides[get_financial_repository] = lambda: financials
+    app.dependency_overrides[get_alert_repository] = lambda: alerts
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/v1/alerts/generate",
+                params={"start_date": "2026-08-01", "end_date": "2026-08-31"},
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json()["candidates"] == 1
+    assert response.json()["created"] == 1
+    assert alerts.generated[0]["rule_code"] == "trip_completion_low"
+
+
+def test_generate_alerts_endpoint_rejects_inverted_period():
+    app.dependency_overrides[get_current_user] = lambda: USER
+    app.dependency_overrides[get_operation_repository] = FakeOperationRepository
+    app.dependency_overrides[get_financial_repository] = lambda: FakeSeriesRepository([])
+    app.dependency_overrides[get_alert_repository] = FakeAlertRepository
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/v1/alerts/generate",
+                params={"start_date": "2026-08-31", "end_date": "2026-08-01"},
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Período inválido."

@@ -54,7 +54,7 @@ Todas as rotas de negócio usam o prefixo `/api/v1`.
 | Operação | `/operations` | Frota, viagens e quilometragem por dia/linha |
 | Passageiros | `/passengers` | Catraca, antecipados e não pagantes |
 | Financeiro | `/financials` | Vendas, utilização, transferências e saldo |
-| Alertas | `/alerts` | Ocorrências, gravidade e acompanhamento |
+| Alertas | `/alerts`, `POST /alerts/generate` | Ocorrências, acompanhamento e detecção automática de anomalias |
 | Dashboard | `GET /dashboard/overview` | KPIs, série diária e ranking de linhas |
 | Importação | `POST /imports/smart-report` | Importa HTML e faz upsert idempotente |
 | Preferências | `/preferences/me` | Preferências do usuário autenticado |
@@ -74,6 +74,31 @@ curl -X POST http://localhost:8000/api/v1/imports/smart-report \
 ```
 
 Tipos aceitos: `operations`, `passengers` e `financials`. A chave natural de cada série impede duplicação quando um relatório é reenviado.
+
+### Gerar alertas automáticos
+
+Depois de importar ou cadastrar os dados do período, um usuário autenticado pode
+executar as regras de detecção:
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/alerts/generate?start_date=2026-08-01&end_date=2026-08-31" \
+  -H "Authorization: Bearer SEU_TOKEN"
+```
+
+Atualmente são avaliados o percentual de viagens concluídas, a proporção de
+quilometragem ociosa e o crédito circulante negativo. A execução é idempotente:
+reprocessar o mesmo período atualiza a ocorrência existente em vez de duplicá-la.
+Alertas automáticos cuja condição deixou de existir são resolvidos, enquanto uma
+ocorrência resolvida manualmente não é reaberta pelo reprocessamento.
+
+Os limites podem ser ajustados por ambiente sem alterar código:
+
+| Variável | Padrão | Uso |
+|---|---:|---|
+| `TRIP_COMPLETION_ALERT_THRESHOLD` | `98.0` | Percentual abaixo do qual há alerta de viagens |
+| `TRIP_COMPLETION_CRITICAL_THRESHOLD` | `90.0` | Percentual abaixo do qual o alerta é crítico |
+| `DEADHEAD_KM_ALERT_THRESHOLD` | `8.0` | Percentual máximo de quilometragem ociosa |
+| `NEGATIVE_CREDIT_CRITICAL_AMOUNT` | `10000` | Déficit a partir do qual o crédito negativo é crítico |
 
 ## Testes
 
