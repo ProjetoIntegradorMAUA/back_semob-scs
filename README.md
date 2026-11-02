@@ -62,6 +62,7 @@ Todas as rotas de negócio usam o prefixo `/api/v1`.
 
 | Grupo | Rotas | Finalidade |
 |---|---|---|
+| Saúde | `GET /health`, `GET /health/ready` | Verifica processo e dependências da API |
 | Autenticação | `POST /auth/login` | Gera JWT Bearer |
 | Usuários | `/users` | Cadastro e administração |
 | Operação | `/operations` | Frota, viagens e quilometragem por dia/linha |
@@ -74,6 +75,16 @@ Todas as rotas de negócio usam o prefixo `/api/v1`.
 | Relatórios | `/reports` | Fila preparada para um worker de geração |
 
 As escritas, importações, preferências e relatórios exigem `Authorization: Bearer <token>`. As leituras do painel são públicas por enquanto para facilitar a integração do protótipo Flutter.
+
+### Saúde e prontidão
+
+`GET /health` confirma que o processo da API está funcionando sem consultar serviços
+externos. `GET /health/ready` também testa a conexão com o MongoDB e devolve `503`
+quando o banco estiver indisponível, permitindo o uso em health checks do Docker,
+Kubernetes ou de uma plataforma de hospedagem. As respostas não são armazenadas em
+cache e incluem o instante da verificação; a prontidão também informa a latência do
+teste do banco. O endpoint antigo `GET /ready` continua disponível como alias
+depreciado para não quebrar integrações existentes.
 
 ### Importar relatórios existentes
 
