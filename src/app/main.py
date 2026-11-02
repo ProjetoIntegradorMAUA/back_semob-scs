@@ -15,6 +15,11 @@ from src.app.api.routes.preferences import router as preferences_router
 from src.app.api.routes.reports import router as reports_router
 from src.app.api.routes.user import router as user_router
 from src.app.core.config import get_settings
+from src.app.core.request_tracing import (
+    PROCESS_TIME_HEADER,
+    REQUEST_ID_HEADER,
+    trace_request,
+)
 from src.app.db.indexes import ensure_indexes
 from src.app.db.session import close_database, get_database
 
@@ -42,7 +47,9 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=[REQUEST_ID_HEADER, PROCESS_TIME_HEADER],
 )
+app.middleware("http")(trace_request)
 
 app.include_router(health_router)
 for router in (

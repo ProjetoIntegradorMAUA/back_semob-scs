@@ -43,6 +43,19 @@ Copie `.env.example` para `.env`. Em produção, troque `JWT_SECRET_KEY`, restri
 
 `MONGO_CONNECT_ON_STARTUP=true` valida a conexão e cria os índices ao iniciar. O padrão no código é `false` para permitir testes e inspeção sem um banco disponível.
 
+### Rastreamento de requisições
+
+Toda resposta inclui `X-Request-ID`, que permite relacionar uma chamada do front aos
+logs do backend, e `X-Process-Time-Ms`, com o tempo gasto pela API. O front pode enviar
+um `X-Request-ID` próprio usando letras, números, ponto, hífen ou sublinhado; valores
+inválidos são substituídos por um UUID seguro. Os dois headers são expostos por CORS,
+portanto também podem ser lidos pelo aplicativo web.
+
+```bash
+curl -i http://localhost:8000/health \
+  -H "X-Request-ID: dashboard-carregamento-01"
+```
+
 ## Endpoints principais
 
 Todas as rotas de negócio usam o prefixo `/api/v1`.
