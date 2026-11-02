@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from pydantic import Field, model_validator
 
-from src.app.models.common import AlertSeverity, AlertStatus
+from src.app.models.common import AlertRule, AlertSeverity, AlertStatus
 from src.app.schemas.common import ApiSchema, PaginationMeta
 
 
@@ -32,6 +32,7 @@ class AlertUpdate(ApiSchema):
 
 class AlertResponse(AlertCreate):
     id: str
+    rule_code: AlertRule | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -39,3 +40,15 @@ class AlertResponse(AlertCreate):
 class AlertList(ApiSchema):
     items: list[AlertResponse]
     meta: PaginationMeta
+
+
+class AlertGenerationResponse(ApiSchema):
+    start_date: date
+    end_date: date
+    evaluated_operations: int
+    evaluated_financials: int
+    candidates: int
+    created: int
+    updated: int
+    resolved: int
+    by_rule: dict[str, int]

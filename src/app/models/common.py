@@ -34,6 +34,12 @@ class AlertStatus(StrEnum):
     RESOLVED = "resolved"
 
 
+class AlertRule(StrEnum):
+    TRIP_COMPLETION_LOW = "trip_completion_low"
+    DEADHEAD_KM_RATIO_HIGH = "deadhead_km_ratio_high"
+    NEGATIVE_CIRCULATING_CREDIT = "negative_circulating_credit"
+
+
 class ReportStatus(StrEnum):
     PENDING = "pending"
     PROCESSING = "processing"

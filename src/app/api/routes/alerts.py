@@ -3,11 +3,26 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
-from src.app.api.dependencies import get_alert_repository, get_current_user
+from src.app.api.dependencies import (
+    get_alert_repository,
+    get_current_user,
+    get_financial_repository,
+    get_operation_repository,
+)
+from src.app.core.config import get_settings
 from src.app.models.common import AlertSeverity, AlertStatus
 from src.app.repositories.alert_repository import AlertRepository
-from src.app.schemas.alert import AlertCreate, AlertList, AlertResponse, AlertUpdate
+from src.app.repositories.financial_repository import FinancialRepository
+from src.app.repositories.operation_repository import OperationRepository
+from src.app.schemas.alert import (
+    AlertCreate,
+    AlertGenerationResponse,
+    AlertList,
+    AlertResponse,
+    AlertUpdate,
+)
 from src.app.schemas.common import PaginationMeta
+from src.app.services.anomaly_detection_service import AnomalyDetectionService
 
 router = APIRouter(prefix="/alerts", tags=["Alertas"])
 
@@ -19,6 +34,22 @@ def create_alert(
     _: Annotated[dict, Depends(get_current_user)],
 ):
     return repository.create(data.model_dump(mode="python"))
+
+
+@router.post("/generate", response_model=AlertGenerationResponse)
+def generate_alerts(
+    start_date: date,
+    end_date: date,
+    operations: Annotated[OperationRepository, Depends(get_operation_repository)],
+    financials: Annotated[FinancialRepository, Depends(get_financial_repository)],
+    alerts: Annotated[AlertRepository, Depends(get_alert_repository)],
+    _: Annotated[dict, Depends(get_current_user)],
+):
+    if end_date < start_date:
+        raise HTTPException(status_code=422, detail="Período inválido.")
+    return AnomalyDetectionService(
+        operations, financials, alerts, get_settings()
+    ).generate(start_date, end_date)
 
 
 @router.get("", response_model=AlertList)
