@@ -29,7 +29,9 @@ cp .env.example .env
 uvicorn src.app.main:app --reload
 ```
 
-A API fica em `http://localhost:8000`; Swagger em `http://localhost:8000/docs` e ReDoc em `http://localhost:8000/redoc`.
+A API fica em `http://localhost:8000`; a raiz apresenta versão e links úteis,
+Swagger fica em `http://localhost:8000/docs` e ReDoc em
+`http://localhost:8000/redoc`.
 
 Também é possível subir API e Mongo juntos:
 
@@ -62,6 +64,7 @@ Todas as rotas de negócio usam o prefixo `/api/v1`.
 
 | Grupo | Rotas | Finalidade |
 |---|---|---|
+| Informações | `GET /` | Versão, prefixo e links de descoberta da API |
 | Saúde | `GET /health`, `GET /health/ready` | Verifica processo e dependências da API |
 | Autenticação | `POST /auth/login` | Gera JWT Bearer |
 | Usuários | `/users` | Cadastro e administração |
