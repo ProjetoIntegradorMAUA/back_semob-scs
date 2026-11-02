@@ -1,15 +1,30 @@
-from fastapi import APIRouter, HTTPException
+from typing import Annotated
 
-from src.app.schemas.user import UserLogin
-from src.app.services.auth_service import verifica_senha_gera_jwt
+from fastapi import APIRouter, Depends, HTTPException, status
 
-router = APIRouter(prefix="/api/auth")
+from src.app.api.dependencies import get_user_repository
+from src.app.core.config import get_settings
+from src.app.repositories.user_repository import UserRepository
+from src.app.schemas.user import TokenResponse, UserLogin
+from src.app.services.auth_service import authenticate_user, create_access_token
+
+router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
 
-@router.post("/login")
-def logar_usuario(dados: UserLogin):
-    token = verifica_senha_gera_jwt(dados.email, dados.senha)
-    if token is None:
-        raise HTTPException(401, detail="Email ou senha inválidos.")
+@router.post("/login", response_model=TokenResponse)
+def login(
+    data: UserLogin,
+    repository: Annotated[UserRepository, Depends(get_user_repository)],
+):
+    user = authenticate_user(repository, str(data.email), data.senha)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="E-mail ou senha inválidos.",
+        )
 
-    return {"access_token": token, "token_type": "bearer"}
+    settings = get_settings()
+    return TokenResponse(
+        access_token=create_access_token(user["id"], settings),
+        expires_in=settings.access_token_expire_minutes * 60,
+    )

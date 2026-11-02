@@ -1,0 +1,29 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DATABASE: semob_scs
+      MONGO_CONNECT_ON_STARTUP: "true"
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-desenvolvimento-local-troque-em-producao}
+      CORS_ORIGINS: http://localhost:8080,http://localhost:3000
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:8
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  mongo_data:

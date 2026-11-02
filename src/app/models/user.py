@@ -1,8 +1,10 @@
-from pydantic import BaseModel
+from pydantic import EmailStr
+
+from src.app.models.common import DocumentModel
 
 
-class User(BaseModel):
-    id: str
+class User(DocumentModel):
     nome: str
-    email: str
+    email: EmailStr
     senha_hash: str
+    ativo: bool = True
