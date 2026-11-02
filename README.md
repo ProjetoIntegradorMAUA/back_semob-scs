@@ -37,6 +37,9 @@ Também é possível subir API e Mongo juntos:
 docker compose up --build
 ```
 
+O Compose verifica automaticamente `/health/ready`. Use `docker compose ps` para
+confirmar que API e MongoDB estão marcados como `healthy` antes de integrar o front.
+
 ## Configuração
 
 Copie `.env.example` para `.env`. Em produção, troque `JWT_SECRET_KEY`, restrinja `CORS_ORIGINS` e use uma URI Mongo com autenticação e TLS.
