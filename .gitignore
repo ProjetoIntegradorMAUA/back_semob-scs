@@ -10,3 +10,4 @@ venv/
 .coverage
 htmlcov/
 .ruff_cache/
+generated_reports/

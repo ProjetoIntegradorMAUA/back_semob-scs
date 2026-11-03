@@ -11,4 +11,6 @@ class ReportJob(DocumentModel):
     end_date: date
     status: ReportStatus = ReportStatus.PENDING
     file_url: str | None = None
+    file_name: str | None = None
+    content_type: str | None = None
     error_message: str | None = None

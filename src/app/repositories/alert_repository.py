@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import date, datetime
 from typing import Any
 
@@ -5,7 +7,7 @@ from pymongo import DESCENDING
 from pymongo.database import Database
 
 from src.app.models.common import AlertSeverity, AlertStatus, utc_now
-from src.app.repositories.base import CrudRepository, mongo_ready
+from src.app.repositories.base import CrudRepository, mongo_ready, serialize_document
 from src.app.repositories.time_series_repository import date_filter
 
 
@@ -33,6 +35,16 @@ class AlertRepository(CrudRepository):
         query = date_filter(start_date, end_date)
         query["status"] = {"$ne": AlertStatus.RESOLVED.value}
         return self.collection.count_documents(query)
+
+    def find_range(self, start_date: date, end_date: date) -> list[dict[str, Any]]:
+        documents = self.collection.find(date_filter(start_date, end_date)).sort(
+            "date", DESCENDING
+        )
+        return [
+            item
+            for item in (serialize_document(document) for document in documents)
+            if item is not None
+        ]
 
     def upsert_generated(self, data: dict[str, Any]) -> bool:
         """Persiste um alerta automático sem reabrir ocorrências já resolvidas."""

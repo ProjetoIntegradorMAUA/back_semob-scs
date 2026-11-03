@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     """Configuração carregada do ambiente e, opcionalmente, do arquivo .env."""
 
     app_name: str = "SEMOB-SCS API"
-    app_version: str = "0.2.0"
+    app_version: str = "1.0.0"
     environment: str = "development"
     api_v1_prefix: str = "/api/v1"
     mongo_uri: str = "mongodb://localhost:27017"
@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     trip_completion_critical_threshold: float = Field(default=90.0, gt=0, le=100)
     deadhead_km_alert_threshold: float = Field(default=8.0, ge=0, le=100)
     negative_credit_critical_amount: float = Field(default=10_000.0, ge=0)
+    report_output_dir: str = "generated_reports"
     cors_origins: str = "http://localhost:3000,http://localhost:5173,http://localhost:8080"
 
     model_config = SettingsConfigDict(

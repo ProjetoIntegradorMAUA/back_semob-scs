@@ -1,5 +1,8 @@
 from src.app.services.smart_report_parser import (
     parse_financials,
+    parse_hourly_operations,
+    parse_operation_fcv,
+    parse_operation_lines,
     parse_operations,
     parse_passengers,
 )
@@ -46,3 +49,52 @@ def test_parse_financials_merges_tables_by_date():
     assert len(rows) == 1
     assert rows[0]["sales"] == 2000
     assert rows[0]["credits_transferred"] == 1234.5
+
+
+def test_parse_operation_lines_and_fcv():
+    lines = b"""
+    <table><tr><th>Data</th><th>Linha</th><th>kmTotal</th><th>nrViagens</th></tr>
+    <tr><td>01/08/2026</td><td>03</td><td>1.234,5</td><td>120</td></tr></table>
+    """
+    fcv = b"""
+    <table><tr><th>Data</th><th>Manha P</th><th>Manha R</th><th>Tarde P</th>
+    <th>Tarde R</th><th>Noite P</th><th>Noite R</th><th>Programadas</th><th>Realizadas</th></tr>
+    <tr><td>01/08/2026</td><td>40</td><td>39</td><td>35</td><td>34</td>
+    <td>25</td><td>24</td><td>100</td><td>97</td></tr></table>
+    """
+
+    line_rows = parse_operation_lines(lines)
+    fcv_rows = parse_operation_fcv(fcv)
+
+    assert line_rows[0]["line_code"] == "03"
+    assert line_rows[0]["productive_km"] == 1234.5
+    assert fcv_rows[0]["scheduled_trips"] == 100
+    assert fcv_rows[0]["night_completed"] == 24
+
+
+def test_parse_hourly_operations_consolidated_and_by_line():
+    summary = b"""
+    <table><tr><th>Data</th><th>Fx Hor</th><th>nrVeiculos</th><th>nrViagens</th></tr>
+    <tr><td>01/08/2026</td><td>4hs</td><td>11</td><td>14</td></tr></table>
+    """
+    detail = b"""
+    <table><tr><th>Data</th><th>Linha</th><th>Fx Hor</th><th>nrVeiculos</th><th>nrViagens</th></tr>
+    <tr><td>01/08/2026</td><td>01</td><td>23hs</td><td>2</td><td>3</td></tr></table>
+    """
+
+    summary_rows = parse_hourly_operations(summary)
+    detail_rows = parse_hourly_operations(detail)
+
+    assert summary_rows[0]["hour"] == 4
+    assert summary_rows[0]["line_code"] is None
+    assert detail_rows[0]["hour"] == 23
+    assert detail_rows[0]["line_code"] == "01"
+
+
+def test_parse_hourly_operations_rejects_invalid_hour():
+    content = b"""
+    <table><tr><th>Data</th><th>Fx Hor</th><th>nrVeiculos</th><th>nrViagens</th></tr>
+    <tr><td>01/08/2026</td><td>invalida</td><td>1</td><td>1</td></tr></table>
+    """
+
+    assert parse_hourly_operations(content) == []

@@ -10,6 +10,10 @@ def ensure_indexes(database: Database) -> None:
     database.operations.create_index(
         [("date", ASCENDING), ("line_code", ASCENDING)], unique=True
     )
+    database.hourly_operations.create_index(
+        [("date", ASCENDING), ("hour", ASCENDING), ("line_code", ASCENDING)],
+        unique=True,
+    )
     database.passengers.create_index("date", unique=True)
     database.financials.create_index("date", unique=True)
     database.alerts.create_index([("date", DESCENDING), ("status", ASCENDING)])

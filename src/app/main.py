@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.app.api.routes.api_info import router as api_info_router
+from src.app.api.routes.analytics import router as analytics_router
 from src.app.api.routes.alerts import router as alerts_router
 from src.app.api.routes.auth import router as auth_router
 from src.app.api.routes.dashboard import router as dashboard_router
@@ -62,6 +63,7 @@ for router in (
     financials_router,
     alerts_router,
     dashboard_router,
+    analytics_router,
     imports_router,
     preferences_router,
     reports_router,

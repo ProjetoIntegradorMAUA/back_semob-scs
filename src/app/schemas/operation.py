@@ -15,6 +15,12 @@ class OperationBase(ApiSchema):
     completed_trips: int = Field(default=0, ge=0)
     productive_km: float = Field(default=0, ge=0)
     deadhead_km: float = Field(default=0, ge=0)
+    morning_scheduled: int = Field(default=0, ge=0)
+    morning_completed: int = Field(default=0, ge=0)
+    afternoon_scheduled: int = Field(default=0, ge=0)
+    afternoon_completed: int = Field(default=0, ge=0)
+    night_scheduled: int = Field(default=0, ge=0)
+    night_completed: int = Field(default=0, ge=0)
     source: DataSource = DataSource.MANUAL
 
 
@@ -30,6 +36,12 @@ class OperationUpdate(ApiSchema):
     completed_trips: int | None = Field(default=None, ge=0)
     productive_km: float | None = Field(default=None, ge=0)
     deadhead_km: float | None = Field(default=None, ge=0)
+    morning_scheduled: int | None = Field(default=None, ge=0)
+    morning_completed: int | None = Field(default=None, ge=0)
+    afternoon_scheduled: int | None = Field(default=None, ge=0)
+    afternoon_completed: int | None = Field(default=None, ge=0)
+    night_scheduled: int | None = Field(default=None, ge=0)
+    night_completed: int | None = Field(default=None, ge=0)
     source: DataSource | None = None
 
     @model_validator(mode="after")

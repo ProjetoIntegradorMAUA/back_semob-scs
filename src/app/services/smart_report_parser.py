@@ -185,8 +185,110 @@ def parse_financials(content: bytes) -> list[dict]:
     ]
 
 
+def parse_operation_lines(content: bytes) -> list[dict]:
+    """Importa o relatório de quilometragem e viagens diárias por linha."""
+
+    headers, rows = _matching_table(content, {"data", "linha", "kmtotal", "nrviagens"})
+    index = {name: position for position, name in enumerate(headers)}
+    parsed = []
+    for row in rows:
+        try:
+            day = _date_br(row[index["data"]])
+            line_code = row[index["linha"]].strip()
+        except (ValueError, IndexError):
+            continue
+        if not line_code:
+            continue
+        parsed.append(
+            {
+                "date": day,
+                "line_code": line_code,
+                "completed_trips": _integer(row[index["nrviagens"]]),
+                "productive_km": _number(row[index["kmtotal"]]),
+                "source": DataSource.SMART_REPORT.value,
+            }
+        )
+    return parsed
+
+
+def parse_operation_fcv(content: bytes) -> list[dict]:
+    """Importa viagens programadas/realizadas e as três faixas do FCV."""
+
+    required = {
+        "data",
+        "manhap",
+        "manhar",
+        "tardep",
+        "tarder",
+        "noitep",
+        "noiter",
+        "programadas",
+        "realizadas",
+    }
+    headers, rows = _matching_table(content, required)
+    index = {name: position for position, name in enumerate(headers)}
+    parsed = []
+    for row in rows:
+        try:
+            day = _date_br(row[index["data"]])
+        except (ValueError, IndexError):
+            continue
+        parsed.append(
+            {
+                "date": day,
+                "line_code": None,
+                "scheduled_trips": _integer(row[index["programadas"]]),
+                "completed_trips": _integer(row[index["realizadas"]]),
+                "morning_scheduled": _integer(row[index["manhap"]]),
+                "morning_completed": _integer(row[index["manhar"]]),
+                "afternoon_scheduled": _integer(row[index["tardep"]]),
+                "afternoon_completed": _integer(row[index["tarder"]]),
+                "night_scheduled": _integer(row[index["noitep"]]),
+                "night_completed": _integer(row[index["noiter"]]),
+                "source": DataSource.SMART_REPORT.value,
+            }
+        )
+    return parsed
+
+
+def _hour(value: str) -> int:
+    match = re.search(r"\d+", value)
+    if match is None:
+        raise ValueError(f"Faixa horária inválida: {value}.")
+    return int(match.group()) % 24
+
+
+def parse_hourly_operations(content: bytes) -> list[dict]:
+    """Importa oferta por hora, consolidada ou detalhada por linha."""
+
+    headers, rows = _matching_table(content, {"data", "fxhor", "nrveiculos", "nrviagens"})
+    index = {name: position for position, name in enumerate(headers)}
+    line_index = index.get("linha")
+    parsed = []
+    for row in rows:
+        try:
+            day = _date_br(row[index["data"]])
+            hour = _hour(row[index["fxhor"]])
+        except (ValueError, IndexError):
+            continue
+        parsed.append(
+            {
+                "date": day,
+                "hour": hour,
+                "line_code": row[line_index].strip() if line_index is not None else None,
+                "vehicles": _integer(row[index["nrveiculos"]]),
+                "trips": _integer(row[index["nrviagens"]]),
+                "source": DataSource.SMART_REPORT.value,
+            }
+        )
+    return parsed
+
+
 PARSERS: dict[str, Callable[[bytes], list[dict]]] = {
     "operations": parse_operations,
+    "operation_lines": parse_operation_lines,
+    "operation_fcv": parse_operation_fcv,
+    "hourly_operations": parse_hourly_operations,
     "passengers": parse_passengers,
     "financials": parse_financials,
 }

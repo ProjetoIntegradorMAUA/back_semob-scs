@@ -8,7 +8,10 @@ services:
       MONGO_DATABASE: semob_scs
       MONGO_CONNECT_ON_STARTUP: "true"
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-desenvolvimento-local-troque-em-producao}
+      REPORT_OUTPUT_DIR: /app/generated_reports
       CORS_ORIGINS: http://localhost:8080,http://localhost:3000
+    volumes:
+      - report_files:/app/generated_reports
     depends_on:
       mongo:
         condition: service_healthy
@@ -37,3 +40,4 @@ services:
 
 volumes:
   mongo_data:
+  report_files:

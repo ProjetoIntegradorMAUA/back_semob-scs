@@ -13,8 +13,16 @@ class ReportFormat(StrEnum):
     XLSX = "xlsx"
 
 
+class ReportType(StrEnum):
+    CONSOLIDATED = "consolidated"
+    OPERATIONS = "operations"
+    PASSENGERS = "passengers"
+    FINANCIALS = "financials"
+    ALERTS = "alerts"
+
+
 class ReportCreate(ApiSchema):
-    report_type: str = Field(min_length=2, max_length=80)
+    report_type: ReportType
     format: ReportFormat
     start_date: date
     end_date: date
@@ -31,6 +39,8 @@ class ReportResponse(ReportCreate):
     requested_by: str
     status: ReportStatus
     file_url: str | None = None
+    file_name: str | None = None
+    content_type: str | None = None
     error_message: str | None = None
     created_at: datetime
     updated_at: datetime
