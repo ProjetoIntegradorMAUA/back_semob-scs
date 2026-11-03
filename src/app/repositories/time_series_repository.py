@@ -61,7 +61,9 @@ class TimeSeriesRepository(CrudRepository):
         now = utc_now()
         operations = []
         for row in rows:
-            match = {field: row.get(field) for field in self.unique_fields}
+            match = mongo_ready(
+                {field: row.get(field) for field in self.unique_fields}
+            )
             operations.append(
                 UpdateOne(
                     match,

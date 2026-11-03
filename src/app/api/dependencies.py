@@ -7,6 +7,7 @@ from pymongo.database import Database
 from src.app.db.session import get_database
 from src.app.repositories.alert_repository import AlertRepository
 from src.app.repositories.financial_repository import FinancialRepository
+from src.app.repositories.hourly_operation_repository import HourlyOperationRepository
 from src.app.repositories.operation_repository import OperationRepository
 from src.app.repositories.passenger_repository import PassengerRepository
 from src.app.repositories.preference_repository import PreferenceRepository
@@ -31,6 +32,12 @@ def get_passenger_repository(database: Database = Depends(get_database)) -> Pass
 
 def get_financial_repository(database: Database = Depends(get_database)) -> FinancialRepository:
     return FinancialRepository(database)
+
+
+def get_hourly_operation_repository(
+    database: Database = Depends(get_database),
+) -> HourlyOperationRepository:
+    return HourlyOperationRepository(database)
 
 
 def get_alert_repository(database: Database = Depends(get_database)) -> AlertRepository:

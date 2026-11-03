@@ -6,6 +6,7 @@ from src.app.api.dependencies import (
     get_alert_repository,
     get_current_user,
     get_financial_repository,
+    get_hourly_operation_repository,
     get_operation_repository,
     get_passenger_repository,
 )
@@ -199,6 +200,42 @@ def test_smart_report_upload_rejects_unknown_html():
 
     assert response.status_code == 422
     assert "Tabela esperada" in response.json()["detail"]
+
+
+def test_smart_data_batch_upserts_all_series_and_forces_source():
+    operations = FakeOperationRepository()
+    passengers = FakeSeriesRepository([])
+    financials = FakeSeriesRepository([])
+    hourly = FakeSeriesRepository([])
+    app.dependency_overrides[get_current_user] = lambda: USER
+    app.dependency_overrides[get_operation_repository] = lambda: operations
+    app.dependency_overrides[get_passenger_repository] = lambda: passengers
+    app.dependency_overrides[get_financial_repository] = lambda: financials
+    app.dependency_overrides[get_hourly_operation_repository] = lambda: hourly
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/v1/imports/smart-data",
+                json={
+                    "operations": [
+                        {"date": "2026-08-01", "scheduled_trips": 10}
+                    ],
+                    "passengers": [{"date": "2026-08-01", "fare_gate": 20}],
+                    "financials": [{"date": "2026-08-01", "sales": 30}],
+                    "hourly_operations": [
+                        {"date": "2026-08-01", "hour": 4, "trips": 5}
+                    ],
+                },
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 4
+    assert operations.imported[0]["source"] == "smart_data_api"
+    assert passengers.imported[0]["source"] == "smart_data_api"
+    assert financials.imported[0]["source"] == "smart_data_api"
+    assert hourly.imported[0]["source"] == "smart_data_api"
 
 
 def test_generate_alerts_endpoint_detects_anomaly():

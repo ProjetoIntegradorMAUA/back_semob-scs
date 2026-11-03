@@ -11,7 +11,7 @@ def test_api_root_exposes_discovery_links():
     assert response.json() == {
         "status": "online",
         "service": "SEMOB-SCS API",
-        "version": "0.2.0",
+        "version": "1.0.0",
         "api_prefix": "/api/v1",
         "documentation": {
             "swagger": "/docs",

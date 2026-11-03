@@ -1,6 +1,6 @@
 # Backend SEMOB-SCS
 
-API FastAPI + MongoDB para consolidar os dados operacionais do transporte municipal de São Caetano do Sul. O backend cobre autenticação, operação da frota, passageiros, financeiro, alertas, preferências, pedidos de relatórios, importação dos HTMLs da Smart Report e agregação do dashboard.
+API FastAPI + MongoDB para consolidar os dados operacionais do transporte municipal de São Caetano do Sul. O backend cobre autenticação, operação da frota, passageiros, financeiro, alertas, preferências, geração de relatórios, importação Smart Report/Smart Data e todos os agregados consumidos pelo dashboard Flutter.
 
 ## Requisitos
 
@@ -76,9 +76,10 @@ Todas as rotas de negócio usam o prefixo `/api/v1`.
 | Financeiro | `/financials` | Vendas, utilização, transferências e saldo |
 | Alertas | `/alerts`, `POST /alerts/generate` | Ocorrências, acompanhamento e detecção automática de anomalias |
 | Dashboard | `GET /dashboard/overview` | KPIs, série diária e ranking de linhas |
-| Importação | `POST /imports/smart-report` | Importa HTML e faz upsert idempotente |
+| Análises | `/analytics/operations`, `/passengers`, `/financials` | Contratos completos das telas analíticas |
+| Importação | `/imports/smart-report`, `/imports/smart-data` | Ingestão idempotente de HTML ou lote normalizado |
 | Preferências | `/preferences/me` | Preferências do usuário autenticado |
-| Relatórios | `/reports` | Fila preparada para um worker de geração |
+| Relatórios | `/reports`, `/reports/{id}/download` | Geração e download de PDF, Excel e CSV |
 
 As escritas, importações, preferências e relatórios exigem `Authorization: Bearer <token>`. As leituras do painel são públicas por enquanto para facilitar a integração do protótipo Flutter.
 
@@ -103,7 +104,42 @@ curl -X POST http://localhost:8000/api/v1/imports/smart-report \
   -F "file=@Mensal_202608.html"
 ```
 
-Tipos aceitos: `operations`, `passengers` e `financials`. A chave natural de cada série impede duplicação quando um relatório é reenviado.
+Tipos aceitos:
+
+- `operations`: operação diária consolidada;
+- `operation_lines`: viagens e quilometragem por linha (`Mensal_Linhas`);
+- `operation_fcv`: programadas/realizadas por manhã, tarde e noite (`Mensal_FCV`);
+- `hourly_operations`: veículos e viagens por hora, consolidado ou por linha;
+- `passengers`: catraca, antecipados e não pagantes;
+- `financials`: vendas, utilização, transferências e saldo.
+
+A chave natural de cada série impede duplicação quando um relatório é reenviado.
+
+### Integração futura com Smart Data
+
+`POST /api/v1/imports/smart-data` recebe lotes JSON normalizados das quatro séries
+(`operations`, `passengers`, `financials` e `hourly_operations`). O endpoint força a
+origem `smart_data_api` e utiliza os mesmos upserts, índices e analytics dos HTMLs.
+Quando a especificação e as credenciais da Smart Data forem disponibilizadas, será
+necessário apenas construir o adaptador externo para esse contrato.
+
+### Contratos das telas Flutter
+
+As rotas analíticas evitam que o aplicativo replique regras de negócio:
+
+- `/analytics/operations`: KPIs, evolução diária, ranking de linhas e FCV por faixa;
+- `/analytics/passengers`: composição, evolução diária/semanal e oferta por hora;
+- `/analytics/financials`: vendas/utilização diária, semanal e comparação mensal.
+
+Todas recebem `start_date` e `end_date` no formato `YYYY-MM-DD`.
+
+### Relatórios gerenciais
+
+`POST /api/v1/reports` gera o arquivo imediatamente nos formatos `pdf`, `xlsx` ou
+`csv`. Os tipos são `consolidated`, `operations`, `passengers`, `financials` e
+`alerts`. O resultado informa `file_url`; somente o solicitante autenticado pode
+consultar, baixar ou excluir o relatório. Em Docker, os arquivos ficam no volume
+persistente `report_files`.
 
 ### Gerar alertas automáticos
 
@@ -137,7 +173,9 @@ python -m pytest
 python -m pytest --cov=src.app --cov-report=term-missing
 ```
 
-Os testes usam dependências substituídas e mocks; não precisam de MongoDB ativo.
+Os testes usam dependências substituídas, arquivos reais gerados em diretório
+temporário e mocks de persistência; não precisam de MongoDB ativo. A configuração
+atual mantém cobertura acima de 90%.
 
 ## Estrutura
 
@@ -149,13 +187,13 @@ src/app/
   models/          documentos de domínio
   schemas/         contratos e validações HTTP
   repositories/    persistência e consultas
-  services/        autenticação, agregação e parser Smart Report
+  services/        autenticação, analytics, relatórios e parsers de importação
 src/test/           testes unitários e de API
 ```
 
 ## Próximas integrações previstas
 
-- substituir o upload manual por ingestão direta da API Smart Data;
-- executar pedidos de relatório em worker assíncrono e gravar `file_url`;
+- conectar o adaptador `/imports/smart-data` à API externa quando houver credenciais;
+- mover geração de relatórios muito grandes para worker assíncrono;
 - aplicar papéis/permissões (administrador, gestor e leitura);
 - mover agregações de grande volume para pipelines MongoDB e cache.
