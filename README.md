@@ -77,7 +77,7 @@ Todas as rotas de negócio usam o prefixo `/api/v1`.
 | Alertas | `/alerts`, `POST /alerts/generate` | Ocorrências, acompanhamento e detecção automática de anomalias |
 | Dashboard | `GET /dashboard/overview` | KPIs, série diária e ranking de linhas |
 | Análises | `/analytics/operations`, `/passengers`, `/financials` | Contratos completos das telas analíticas |
-| Importação | `/imports/smart-report`, `/imports/smart-data` | Ingestão idempotente de HTML ou lote normalizado |
+| Importação | `/imports/smart-report`, `/imports/smart-data`, `/imports/history` | Ingestão idempotente, simulação e auditoria dos lotes |
 | Preferências | `/preferences/me` | Preferências do usuário autenticado |
 | Relatórios | `/reports`, `/reports/{id}/download` | Geração e download de PDF, Excel e CSV |
 
@@ -114,6 +114,9 @@ Tipos aceitos:
 - `financials`: vendas, utilização, transferências e saldo.
 
 A chave natural de cada série impede duplicação quando um relatório é reenviado.
+Acrescente `?dry_run=true` para validar e contabilizar o conteúdo sem persistir os
+registros. Cada tentativa recebe um identificador e pode ser consultada em
+`GET /api/v1/imports/history`, com usuário, origem, checksum, contagens e resultado.
 
 ### Integração futura com Smart Data
 
@@ -122,6 +125,8 @@ A chave natural de cada série impede duplicação quando um relatório é reenv
 origem `smart_data_api` e utiliza os mesmos upserts, índices e analytics dos HTMLs.
 Quando a especificação e as credenciais da Smart Data forem disponibilizadas, será
 necessário apenas construir o adaptador externo para esse contrato.
+O mesmo endpoint aceita `dry_run` e registra o histórico, permitindo homologar um
+adaptador novo antes de liberar gravações no banco de produção.
 
 ### Contratos das telas Flutter
 

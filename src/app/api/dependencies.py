@@ -8,6 +8,7 @@ from src.app.db.session import get_database
 from src.app.repositories.alert_repository import AlertRepository
 from src.app.repositories.financial_repository import FinancialRepository
 from src.app.repositories.hourly_operation_repository import HourlyOperationRepository
+from src.app.repositories.import_job_repository import ImportJobRepository
 from src.app.repositories.operation_repository import OperationRepository
 from src.app.repositories.passenger_repository import PassengerRepository
 from src.app.repositories.preference_repository import PreferenceRepository
@@ -38,6 +39,10 @@ def get_hourly_operation_repository(
     database: Database = Depends(get_database),
 ) -> HourlyOperationRepository:
     return HourlyOperationRepository(database)
+
+
+def get_import_job_repository(database: Database = Depends(get_database)) -> ImportJobRepository:
+    return ImportJobRepository(database)
 
 
 def get_alert_repository(database: Database = Depends(get_database)) -> AlertRepository:
