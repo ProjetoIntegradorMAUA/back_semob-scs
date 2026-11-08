@@ -7,6 +7,7 @@ from src.app.api.dependencies import (
     get_current_user,
     get_financial_repository,
     get_hourly_operation_repository,
+    get_import_job_repository,
     get_operation_repository,
     get_passenger_repository,
 )
@@ -15,6 +16,36 @@ from src.app.main import app
 
 NOW = datetime.now(timezone.utc)
 USER = {"id": "66f000000000000000000001", "email": "gestor@semob.test", "ativo": True}
+
+
+class FakeImportJobRepository:
+    def __init__(self):
+        self.items = {}
+        self.next_id = 1
+
+    def create(self, data):
+        item = {
+            "id": f"66f0000000000000000000{self.next_id:02d}",
+            **data,
+            "created_at": NOW,
+            "updated_at": NOW,
+        }
+        self.next_id += 1
+        self.items[item["id"]] = item
+        return item
+
+    def update(self, import_id, data):
+        self.items[import_id].update(data)
+        self.items[import_id]["updated_at"] = NOW
+        return self.items[import_id]
+
+    def get_for_user(self, import_id, user_id):
+        item = self.items.get(import_id)
+        return item if item and item["requested_by"] == user_id else None
+
+    def list_for_user(self, user_id, page, page_size):
+        items = [item for item in self.items.values() if item["requested_by"] == user_id]
+        return items, len(items)
 
 
 class FakeOperationRepository:
@@ -87,6 +118,7 @@ def _override_dashboard_dependencies():
     app.dependency_overrides[get_passenger_repository] = lambda: passengers
     app.dependency_overrides[get_financial_repository] = lambda: financials
     app.dependency_overrides[get_alert_repository] = lambda: FakeAlertRepository()
+    app.dependency_overrides[get_import_job_repository] = FakeImportJobRepository
     return operations, passengers, financials
 
 
@@ -202,6 +234,95 @@ def test_smart_report_upload_rejects_unknown_html():
     assert "Tabela esperada" in response.json()["detail"]
 
 
+def test_smart_report_dry_run_sanitizes_name_and_does_not_persist():
+    operations, _, _ = _override_dashboard_dependencies()
+    jobs = FakeImportJobRepository()
+    app.dependency_overrides[get_current_user] = lambda: USER
+    app.dependency_overrides[get_import_job_repository] = lambda: jobs
+    content = b"""
+    <table><th>Data</th><th>diaSem</th><th>nrVeiculos</th><th>nrMaxVeicFx</th>
+    <th>nrViagensProgr</th><th>nrViagensRealiz</th><th>kmProd</th><th>kmImprod</th>
+    <tr><td>01/08/2026</td><td>Sab</td><td>37</td><td>35</td><td>924</td>
+    <td>920</td><td>6889,4</td><td>344,3</td></tr></table>
+    """
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/v1/imports/smart-report?dry_run=true",
+                data={"report_type": "operations"},
+                files={"file": ("../Mensal.html", content, "text/html")},
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    saved = next(iter(jobs.items.values()))
+    assert response.status_code == 200
+    assert response.json()["status"] == "validated"
+    assert response.json()["source"] == "Mensal.html"
+    assert operations.imported == []
+    assert saved["checksum_sha256"]
+    assert saved["parsed"] == 1
+
+
+def test_invalid_files_and_storage_failures_are_recorded():
+    operations, _, _ = _override_dashboard_dependencies()
+    jobs = FakeImportJobRepository()
+    app.dependency_overrides[get_current_user] = lambda: USER
+    app.dependency_overrides[get_import_job_repository] = lambda: jobs
+    try:
+        with TestClient(app) as client:
+            empty = client.post(
+                "/api/v1/imports/smart-report",
+                data={"report_type": "operations"},
+                files={"file": ("vazio.html", b"", "text/html")},
+            )
+            oversized = client.post(
+                "/api/v1/imports/smart-report",
+                data={"report_type": "operations"},
+                files={
+                    "file": (
+                        "grande.html",
+                        b"x" * (10 * 1024 * 1024 + 1),
+                        "text/html",
+                    )
+                },
+            )
+            operations.upsert_many = lambda rows: (_ for _ in ()).throw(
+                RuntimeError("Mongo indisponível")
+            )
+            failed = client.post(
+                "/api/v1/imports/smart-data",
+                json={"operations": [{"date": "2026-08-01"}]},
+            )
+            failed_report = client.post(
+                "/api/v1/imports/smart-report",
+                data={"report_type": "operations"},
+                files={
+                    "file": (
+                        "Mensal.html",
+                        b"""
+                        <table><th>Data</th><th>diaSem</th><th>nrVeiculos</th>
+                        <th>nrMaxVeicFx</th><th>nrViagensProgr</th>
+                        <th>nrViagensRealiz</th><th>kmProd</th><th>kmImprod</th>
+                        <tr><td>01/08/2026</td><td>Sab</td><td>37</td><td>35</td>
+                        <td>924</td><td>920</td><td>6889,4</td><td>344,3</td></tr>
+                        </table>
+                        """,
+                        "text/html",
+                    )
+                },
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    statuses = [item["status"] for item in jobs.items.values()]
+    assert empty.status_code == 422
+    assert oversized.status_code == 413
+    assert failed.status_code == 500
+    assert failed_report.status_code == 500
+    assert statuses == ["failed", "failed", "failed", "failed"]
+
+
 def test_smart_data_batch_upserts_all_series_and_forces_source():
     operations = FakeOperationRepository()
     passengers = FakeSeriesRepository([])
@@ -212,6 +333,7 @@ def test_smart_data_batch_upserts_all_series_and_forces_source():
     app.dependency_overrides[get_passenger_repository] = lambda: passengers
     app.dependency_overrides[get_financial_repository] = lambda: financials
     app.dependency_overrides[get_hourly_operation_repository] = lambda: hourly
+    app.dependency_overrides[get_import_job_repository] = FakeImportJobRepository
     try:
         with TestClient(app) as client:
             response = client.post(
@@ -232,10 +354,48 @@ def test_smart_data_batch_upserts_all_series_and_forces_source():
 
     assert response.status_code == 200
     assert response.json()["total"] == 4
+    assert response.json()["status"] == "completed"
     assert operations.imported[0]["source"] == "smart_data_api"
     assert passengers.imported[0]["source"] == "smart_data_api"
     assert financials.imported[0]["source"] == "smart_data_api"
     assert hourly.imported[0]["source"] == "smart_data_api"
+
+
+def test_import_dry_run_validates_without_persisting_and_exposes_history():
+    operations = FakeOperationRepository([])
+    passengers = FakeSeriesRepository([])
+    financials = FakeSeriesRepository([])
+    hourly = FakeSeriesRepository([])
+    jobs = FakeImportJobRepository()
+    app.dependency_overrides[get_current_user] = lambda: USER
+    app.dependency_overrides[get_operation_repository] = lambda: operations
+    app.dependency_overrides[get_passenger_repository] = lambda: passengers
+    app.dependency_overrides[get_financial_repository] = lambda: financials
+    app.dependency_overrides[get_hourly_operation_repository] = lambda: hourly
+    app.dependency_overrides[get_import_job_repository] = lambda: jobs
+    try:
+        with TestClient(app) as client:
+            validated = client.post(
+                "/api/v1/imports/smart-data?dry_run=true",
+                json={"operations": [{"date": "2026-08-01", "scheduled_trips": 10}]},
+            )
+            listed = client.get("/api/v1/imports/history")
+            detail = client.get(
+                f"/api/v1/imports/history/{validated.json()['import_id']}"
+            )
+            missing = client.get(
+                "/api/v1/imports/history/66f000000000000000000099"
+            )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert validated.status_code == 200
+    assert validated.json()["status"] == "validated"
+    assert validated.json()["operations"] == 1
+    assert operations.imported == []
+    assert listed.json()["meta"]["total"] == 1
+    assert detail.json()["parsed"] == 1
+    assert missing.status_code == 404
 
 
 def test_generate_alerts_endpoint_detects_anomaly():

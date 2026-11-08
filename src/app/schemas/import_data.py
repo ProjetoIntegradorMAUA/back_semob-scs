@@ -1,12 +1,13 @@
+from datetime import date, datetime
 from enum import StrEnum
-from datetime import date
 
 from pydantic import Field
 
+from src.app.models.common import DataSource, ImportStatus
+from src.app.schemas.common import ApiSchema, PaginationMeta
 from src.app.schemas.financial import FinancialCreate
 from src.app.schemas.operation import OperationCreate
 from src.app.schemas.passenger import PassengerCreate
-from src.app.schemas.common import ApiSchema
 
 
 class ImportType(StrEnum):
@@ -19,10 +20,13 @@ class ImportType(StrEnum):
 
 
 class ImportResponse(ApiSchema):
+    import_id: str
     report_type: ImportType
     parsed: int
     inserted_or_updated: int
     source: str
+    dry_run: bool = False
+    status: ImportStatus
 
 
 class HourlyOperationImport(ApiSchema):
@@ -43,8 +47,33 @@ class SmartDataBatch(ApiSchema):
 
 
 class SmartDataBatchResponse(ApiSchema):
+    import_id: str
     operations: int
     passengers: int
     financials: int
     hourly_operations: int
     total: int
+    dry_run: bool = False
+    status: ImportStatus
+
+
+class ImportJobResponse(ApiSchema):
+    id: str
+    requested_by: str
+    source: DataSource
+    import_type: str
+    file_name: str | None = None
+    checksum_sha256: str | None = None
+    dry_run: bool
+    status: ImportStatus
+    parsed: int
+    inserted_or_updated: int
+    counts: dict[str, int]
+    error_message: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ImportJobList(ApiSchema):
+    items: list[ImportJobResponse]
+    meta: PaginationMeta

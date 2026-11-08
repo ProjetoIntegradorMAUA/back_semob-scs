@@ -25,3 +25,7 @@ def ensure_indexes(database: Database) -> None:
     )
     database.preferences.create_index("user_id", unique=True)
     database.report_jobs.create_index([("created_at", DESCENDING)])
+    database.import_jobs.create_index(
+        [("requested_by", ASCENDING), ("created_at", DESCENDING)]
+    )
+    database.import_jobs.create_index([("status", ASCENDING), ("created_at", DESCENDING)])

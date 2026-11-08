@@ -45,3 +45,10 @@ class ReportStatus(StrEnum):
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+class ImportStatus(StrEnum):
+    PROCESSING = "processing"
+    VALIDATED = "validated"
+    COMPLETED = "completed"
+    FAILED = "failed"
