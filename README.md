@@ -69,7 +69,7 @@ Todas as rotas de negócio usam o prefixo `/api/v1`.
 |---|---|---|
 | Informações | `GET /` | Versão, prefixo e links de descoberta da API |
 | Saúde | `GET /health`, `GET /health/ready` | Verifica processo e dependências da API |
-| Autenticação | `POST /auth/login` | Gera JWT Bearer |
+| Autenticação | `POST /auth/login`, `GET /auth/me` | Gera JWT Bearer e consulta a sessão atual |
 | Usuários | `/users` | Cadastro e administração |
 | Operação | `/operations` | Frota, viagens e quilometragem por dia/linha |
 | Passageiros | `/passengers` | Catraca, antecipados e não pagantes |
@@ -82,6 +82,9 @@ Todas as rotas de negócio usam o prefixo `/api/v1`.
 | Relatórios | `/reports`, `/reports/{id}/download` | Geração e download de PDF, Excel e CSV |
 
 As escritas, importações, preferências e relatórios exigem `Authorization: Bearer <token>`. As leituras do painel são públicas por enquanto para facilitar a integração do protótipo Flutter.
+
+O frontend pode consultar `GET /api/v1/auth/me` após restaurar um token para obter o
+perfil atualizado do usuário sem armazenar nome, e-mail ou dados sensíveis localmente.
 
 ### Saúde e prontidão
 
