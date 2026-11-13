@@ -37,6 +37,24 @@ class UserLogin(ApiSchema):
     senha: str = Field(min_length=1, max_length=128)
 
 
+class CurrentUserUpdate(ApiSchema):
+    nome: str = Field(min_length=2, max_length=120)
+
+
+class PasswordChange(ApiSchema):
+    senha_atual: str = Field(min_length=1, max_length=128)
+    nova_senha: str = Field(min_length=8, max_length=128)
+    confirmacao_senha: str = Field(min_length=8, max_length=128)
+
+    @model_validator(mode="after")
+    def validate_passwords(self):
+        if self.nova_senha == self.senha_atual:
+            raise ValueError("A nova senha deve ser diferente da senha atual.")
+        if self.nova_senha != self.confirmacao_senha:
+            raise ValueError("A confirmação não confere com a nova senha.")
+        return self
+
+
 class TokenResponse(ApiSchema):
     access_token: str
     token_type: str = "bearer"

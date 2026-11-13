@@ -64,3 +64,13 @@ def test_legacy_user_helpers_delegate_to_repository(monkeypatch):
     assert user_repository.delete_user_by_id("u1")["id"] == "u1"
     assert user_repository.update_user_by_id("u1", {"nome": "Novo"})["nome"] == "Novo"
     assert user_repository.get_user_by_email("gestor@example.com")["id"] == "u1"
+
+
+def test_legacy_repository_factory_uses_database_dependency(monkeypatch):
+    database = MagicMock()
+    monkeypatch.setattr("src.app.db.session.get_database", lambda: database)
+
+    repository = user_repository._repository()
+
+    assert isinstance(repository, user_repository.UserRepository)
+    assert repository.collection is database.users

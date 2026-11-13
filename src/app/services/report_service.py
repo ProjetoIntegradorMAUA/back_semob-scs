@@ -76,10 +76,7 @@ class ReportService:
 
     def path(self, file_name: str) -> Path:
         safe_name = Path(file_name).name
-        path = (self.output_dir / safe_name).resolve()
-        if path.parent != self.output_dir:
-            raise ValueError("Caminho de relatório inválido.")
-        return path
+        return (self.output_dir / safe_name).resolve()
 
     def _rows(
         self, report_type: ReportType, start_date: date, end_date: date

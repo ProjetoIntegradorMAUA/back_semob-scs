@@ -5,7 +5,9 @@ from fastapi import HTTPException
 
 from src.app.api.routes import alerts, auth, financials, operations, passengers, preferences, user
 from src.app.models.common import AlertSeverity, AlertStatus
-from src.app.schemas.alert import AlertUpdate
+from pymongo.errors import DuplicateKeyError
+
+from src.app.schemas.alert import AlertCreate, AlertUpdate
 from src.app.schemas.financial import FinancialUpdate
 from src.app.schemas.operation import OperationUpdate
 from src.app.schemas.passenger import PassengerUpdate
@@ -140,6 +142,17 @@ def test_alert_and_preference_routes():
             "updated_at": NOW,
         }
     )
+    created_alert = alerts.create_alert(
+        AlertCreate(
+            date=date(2026, 8, 1),
+            type="Teste",
+            description="Alerta de teste",
+            severity=AlertSeverity.CRITICAL,
+        ),
+        alert_repo,
+        {},
+    )
+    assert created_alert["type"] == "Teste"
     result = alerts.list_alerts(
         alert_repo,
         alert_status=AlertStatus.OPEN,
@@ -219,3 +232,32 @@ def test_user_and_auth_routes(monkeypatch):
     with pytest.raises(HTTPException) as error:
         auth.login(UserLogin(email="gestor@semob.com", senha="errada"), repository)
     assert error.value.status_code == 401
+
+
+def test_user_routes_normalize_email_and_return_duplicate_conflicts(monkeypatch):
+    class DuplicateRepository(Crud):
+        def create(self, data):
+            raise DuplicateKeyError("duplicate")
+
+        def update(self, item_id, data):
+            assert data["email"] == "novo@semob.com"
+            raise DuplicateKeyError("duplicate")
+
+    repository = DuplicateRepository()
+    monkeypatch.setattr(user, "hash_password", lambda password: "hash")
+
+    with pytest.raises(HTTPException) as create_error:
+        user.create_user(
+            UserCreate(nome="Gestor", email="GESTOR@semob.com", senha="12345678"),
+            repository,
+        )
+    with pytest.raises(HTTPException) as update_error:
+        user.update_user(
+            "u1",
+            UserUpdate(email="NOVO@semob.com"),
+            repository,
+            {},
+        )
+
+    assert create_error.value.status_code == 409
+    assert update_error.value.status_code == 409

@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
@@ -8,6 +8,7 @@ from fastapi import Request
 from fastapi.testclient import TestClient
 
 from src.app.core.request_tracing import trace_request
+from src.app import main
 from src.app.main import app, get_rota_teste
 
 
@@ -124,3 +125,22 @@ def test_request_tracing_logs_unhandled_failure(caplog):
     UUID(record.request_id)
     assert record.http_path == "/falha"
     assert record.duration_ms >= 0
+
+
+def test_lifespan_connects_and_creates_indexes_when_enabled(monkeypatch):
+    database = object()
+    ensure_indexes = MagicMock()
+    close_database = MagicMock()
+    monkeypatch.setattr(main.settings, "mongo_connect_on_startup", True)
+    monkeypatch.setattr(main, "get_database", lambda: database)
+    monkeypatch.setattr(main, "ensure_indexes", ensure_indexes)
+    monkeypatch.setattr(main, "close_database", close_database)
+
+    async def run_lifespan():
+        async with main.lifespan(app):
+            pass
+
+    asyncio.run(run_lifespan())
+
+    ensure_indexes.assert_called_once_with(database)
+    close_database.assert_called_once()
