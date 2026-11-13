@@ -1,4 +1,5 @@
 from src.app.services.smart_report_parser import (
+    _tables,
     parse_financials,
     parse_hourly_operations,
     parse_operation_fcv,
@@ -98,3 +99,59 @@ def test_parse_hourly_operations_rejects_invalid_hour():
     """
 
     assert parse_hourly_operations(content) == []
+
+
+def test_parser_handles_cp1252_and_ignores_incomplete_tables():
+    cp1252 = """
+    <table><tr><th>Mês</th><th>Dia</th><th>Catraca</th><th>Antecipados</th>
+    <th>Não Pagantes</th></tr>
+    <tr><td>2026-08</td><td>01</td><td>10</td><td>2</td><td>3</td></tr></table>
+    """.encode("cp1252")
+    incomplete = b"<table><tr><th>Somente cabecalho</th></tr></table>"
+
+    assert parse_passengers(cp1252)[0]["non_paying"] == 3
+    assert _tables(incomplete) == []
+
+
+def test_parsers_skip_invalid_dates_and_empty_lines():
+    operations = b"""
+    <table><tr><th>Data</th><th>nrVeiculos</th><th>nrMaxVeicFx</th>
+    <th>nrViagensProgr</th><th>nrViagensRealiz</th><th>kmProd</th><th>kmImprod</th></tr>
+    <tr><td>data invalida</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+    </table>
+    """
+    lines = b"""
+    <table><tr><th>Data</th><th>Linha</th><th>kmTotal</th><th>nrViagens</th></tr>
+    <tr><td>data invalida</td><td>01</td><td>1</td><td>1</td></tr>
+    <tr><td>01/08/2026</td><td></td><td>1</td><td>1</td></tr>
+    </table>
+    """
+    fcv = b"""
+    <table><tr><th>Data</th><th>Manha P</th><th>Manha R</th><th>Tarde P</th>
+    <th>Tarde R</th><th>Noite P</th><th>Noite R</th><th>Programadas</th>
+    <th>Realizadas</th></tr>
+    <tr><td>data invalida</td><td>1</td><td>1</td><td>1</td><td>1</td>
+    <td>1</td><td>1</td><td>1</td><td>1</td></tr></table>
+    """
+
+    assert parse_operations(operations) == []
+    assert parse_operation_lines(lines) == []
+    assert parse_operation_fcv(fcv) == []
+
+
+def test_financial_parser_rejects_files_without_valid_daily_rows():
+    content = """
+    <table><tr><th>Mês</th><th>Dia</th><th>Total Vendas</th>
+    <th>Total Utilização</th></tr>
+    <tr><td>2026-08</td><td>Total</td><td>1</td><td>1</td></tr></table>
+    <table><tr><th>Mês</th><th>Dia</th><th>Créditos transferidos para cartões</th>
+    <th>Saldo Final</th></tr>
+    <tr><td>2026-08</td><td>Total</td><td>1</td><td>1</td></tr></table>
+    """.encode("utf-8")
+
+    try:
+        parse_financials(content)
+    except ValueError as error:
+        assert "Nenhuma tabela financeira" in str(error)
+    else:
+        raise AssertionError("O parser deveria rejeitar um arquivo sem linhas diárias.")

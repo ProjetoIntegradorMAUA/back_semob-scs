@@ -162,6 +162,9 @@ def test_report_access_and_file_state_errors(tmp_path, monkeypatch):
             )
             gone = client.get(f"/api/v1/reports/{pending['id']}/download")
             missing = client.get("/api/v1/reports/66f000000000000000000088")
+            missing_download = client.get(
+                "/api/v1/reports/66f000000000000000000088/download"
+            )
             missing_delete = client.delete("/api/v1/reports/66f000000000000000000088")
     finally:
         app.dependency_overrides.clear()
@@ -169,4 +172,5 @@ def test_report_access_and_file_state_errors(tmp_path, monkeypatch):
     assert unavailable.status_code == 409
     assert gone.status_code == 410
     assert missing.status_code == 404
+    assert missing_download.status_code == 404
     assert missing_delete.status_code == 404

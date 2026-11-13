@@ -69,7 +69,7 @@ Todas as rotas de negócio usam o prefixo `/api/v1`.
 |---|---|---|
 | Informações | `GET /` | Versão, prefixo e links de descoberta da API |
 | Saúde | `GET /health`, `GET /health/ready` | Verifica processo e dependências da API |
-| Autenticação | `POST /auth/login`, `GET /auth/me` | Gera JWT Bearer e consulta a sessão atual |
+| Autenticação | `POST /auth/login`, `/auth/me` | Login, sessão e atualização segura do próprio perfil |
 | Usuários | `/users` | Cadastro e administração |
 | Operação | `/operations` | Frota, viagens e quilometragem por dia/linha |
 | Operação por hora | `/hourly-operations` | Cadastro e consulta de veículos e viagens por hora/linha |
@@ -86,6 +86,8 @@ As escritas, importações, preferências e relatórios exigem `Authorization: B
 
 O frontend pode consultar `GET /api/v1/auth/me` após restaurar um token para obter o
 perfil atualizado do usuário sem armazenar nome, e-mail ou dados sensíveis localmente.
+Também pode alterar o nome com `PATCH /api/v1/auth/me` e a senha com
+`PUT /api/v1/auth/me/password`; a troca exige a senha atual e confirmação da nova.
 
 ### Saúde e prontidão
 
@@ -184,7 +186,7 @@ python -m pytest --cov=src.app --cov-report=term-missing
 
 Os testes usam dependências substituídas, arquivos reais gerados em diretório
 temporário e mocks de persistência; não precisam de MongoDB ativo. A configuração
-exige cobertura mínima de 98% e falha automaticamente se uma alteração futura
+exige cobertura de 100% e falha automaticamente se uma alteração futura
 reduzir esse limite.
 
 ## Estrutura

@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from src.app.schemas.operation import OperationResponse, OperationUpdate
+from src.app.schemas.financial import FinancialResponse
 from src.app.schemas.passenger import PassengerResponse
 from src.app.schemas.report import ReportCreate
 
@@ -40,6 +41,20 @@ def test_passenger_response_computes_totals():
 
     assert passengers.paying == 14
     assert passengers.total == 34
+
+
+def test_financial_response_computes_circulating_credit():
+    now = datetime.now(timezone.utc)
+    financial = FinancialResponse(
+        id="66f000000000000000000001",
+        date=date(2026, 8, 1),
+        sales=100.25,
+        usage=75.10,
+        created_at=now,
+        updated_at=now,
+    )
+
+    assert financial.circulating_credit == 25.15
 
 
 def test_empty_update_is_rejected():

@@ -1,4 +1,4 @@
 [tool.pytest.ini_options]
 testpaths = ["src/test"]
 pythonpath = ["."]
-addopts = "-ra --cov=src.app --cov-report=term-missing --cov-fail-under=98"
+addopts = "-ra --cov=src.app --cov-report=term-missing --cov-fail-under=100"
