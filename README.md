@@ -72,6 +72,7 @@ Todas as rotas de negócio usam o prefixo `/api/v1`.
 | Autenticação | `POST /auth/login`, `GET /auth/me` | Gera JWT Bearer e consulta a sessão atual |
 | Usuários | `/users` | Cadastro e administração |
 | Operação | `/operations` | Frota, viagens e quilometragem por dia/linha |
+| Operação por hora | `/hourly-operations` | Cadastro e consulta de veículos e viagens por hora/linha |
 | Passageiros | `/passengers` | Catraca, antecipados e não pagantes |
 | Financeiro | `/financials` | Vendas, utilização, transferências e saldo |
 | Alertas | `/alerts`, `POST /alerts/generate` | Ocorrências, acompanhamento e detecção automática de anomalias |
@@ -183,7 +184,8 @@ python -m pytest --cov=src.app --cov-report=term-missing
 
 Os testes usam dependências substituídas, arquivos reais gerados em diretório
 temporário e mocks de persistência; não precisam de MongoDB ativo. A configuração
-atual mantém cobertura acima de 90%.
+exige cobertura mínima de 98% e falha automaticamente se uma alteração futura
+reduzir esse limite.
 
 ## Estrutura
 
