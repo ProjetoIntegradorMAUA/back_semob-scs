@@ -9,6 +9,7 @@ from src.app.services.auth_service import (
     decode_access_token,
     hash_password,
     verify_password,
+    verifica_senha_gera_jwt,
 )
 
 
@@ -65,3 +66,22 @@ def test_expired_token_is_rejected():
     )
 
     assert decode_access_token(token, settings) is None
+
+
+def test_legacy_auth_helper_returns_token_or_none(monkeypatch):
+    repository = UserRepository(
+        {
+            "id": "u1",
+            "ativo": True,
+            "senha_hash": hash_password("senha"),
+        }
+    )
+    monkeypatch.setattr(
+        "src.app.repositories.user_repository._repository", lambda: repository
+    )
+    monkeypatch.setattr(
+        "src.app.services.auth_service.create_access_token", lambda user_id: "token"
+    )
+
+    assert verifica_senha_gera_jwt("gestor@example.com", "senha") == "token"
+    assert verifica_senha_gera_jwt("gestor@example.com", "errada") is None

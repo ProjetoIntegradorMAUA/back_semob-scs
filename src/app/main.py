@@ -10,6 +10,7 @@ from src.app.api.routes.auth import router as auth_router
 from src.app.api.routes.dashboard import router as dashboard_router
 from src.app.api.routes.financials import router as financials_router
 from src.app.api.routes.health import router as health_router
+from src.app.api.routes.hourly_operations import router as hourly_operations_router
 from src.app.api.routes.imports import router as imports_router
 from src.app.api.routes.operations import router as operations_router
 from src.app.api.routes.passengers import router as passengers_router
@@ -61,6 +62,7 @@ for router in (
     operations_router,
     passengers_router,
     financials_router,
+    hourly_operations_router,
     alerts_router,
     dashboard_router,
     analytics_router,
