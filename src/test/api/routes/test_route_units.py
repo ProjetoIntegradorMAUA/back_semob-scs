@@ -180,18 +180,25 @@ def test_alert_and_preference_routes():
             return self.value
 
         def upsert(self, user_id, data):
-            self.value = {"id": "p1", "user_id": user_id, **data}
+            self.value = {**(self.value or {}), "id": "p1", "user_id": user_id, **data}
             return self.value
 
     preference_repo = PreferenceRepo()
     current = {"id": "u1"}
     created = preferences.get_my_preferences(current, preference_repo)
     assert created["notify_critical_alerts"] is True
+    assert created["theme"] == "system"
     assert preferences.get_my_preferences(current, preference_repo) is created
     updated = preferences.update_my_preferences(
         PreferenceUpdate(weekly_email_summary=True), current, preference_repo
     )
     assert updated["weekly_email_summary"] is True
+    assert updated["notify_critical_alerts"] is True
+    themed = preferences.update_my_preferences(
+        PreferenceUpdate(theme="dark"), {"id": "new-user"}, PreferenceRepo()
+    )
+    assert themed["theme"] == "dark"
+    assert themed["notify_critical_alerts"] is True
 
 
 def test_user_and_auth_routes(monkeypatch):

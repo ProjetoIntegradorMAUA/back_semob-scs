@@ -79,7 +79,7 @@ Todas as rotas de negócio usam o prefixo `/api/v1`.
 | Dashboard | `GET /dashboard/overview` | KPIs, série diária e ranking de linhas |
 | Análises | `/analytics/operations`, `/passengers`, `/financials` | Contratos completos das telas analíticas |
 | Importação | `/imports/smart-report`, `/imports/smart-data`, `/imports/history` | Ingestão idempotente, simulação e auditoria dos lotes |
-| Preferências | `/preferences/me` | Preferências do usuário autenticado |
+| Preferências | `/preferences/me` | Período, tema e notificações do usuário autenticado |
 | Relatórios | `/reports`, `/reports/{id}/download` | Geração e download de PDF, Excel e CSV |
 
 As escritas, importações, preferências e relatórios exigem `Authorization: Bearer <token>`. As leituras do painel são públicas por enquanto para facilitar a integração do protótipo Flutter.

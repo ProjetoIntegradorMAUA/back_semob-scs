@@ -7,7 +7,11 @@ from src.app.api.dependencies import (
     get_preference_repository,
 )
 from src.app.repositories.preference_repository import PreferenceRepository
-from src.app.schemas.preference import PreferenceResponse, PreferenceUpdate
+from src.app.schemas.preference import (
+    PreferenceResponse,
+    PreferenceSettings,
+    PreferenceUpdate,
+)
 
 router = APIRouter(prefix="/preferences", tags=["Preferências"])
 
@@ -20,13 +24,17 @@ def get_my_preferences(
     existing = repository.get_by_user(user["id"])
     if existing:
         return existing
-    return repository.upsert(user["id"], PreferenceUpdate().model_dump())
+    return repository.upsert(user["id"], PreferenceSettings().model_dump())
 
 
 @router.put("/me", response_model=PreferenceResponse)
+@router.patch("/me", response_model=PreferenceResponse)
 def update_my_preferences(
     data: PreferenceUpdate,
     user: Annotated[dict, Depends(get_current_user)],
     repository: Annotated[PreferenceRepository, Depends(get_preference_repository)],
 ):
-    return repository.upsert(user["id"], data.model_dump())
+    changes = data.model_dump(exclude_unset=True, exclude_none=True)
+    if repository.get_by_user(user["id"]) is None:
+        changes = {**PreferenceSettings().model_dump(), **changes}
+    return repository.upsert(user["id"], changes)
