@@ -14,7 +14,7 @@ from src.app.repositories.passenger_repository import PassengerRepository
 from src.app.repositories.preference_repository import PreferenceRepository
 from src.app.repositories.report_repository import ReportRepository
 from src.app.repositories.user_repository import UserRepository
-from src.app.services.auth_service import decode_access_token
+from src.app.services.auth_service import decode_access_token_payload
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -68,10 +68,12 @@ def get_current_user(
     )
     if credentials is None:
         raise error
-    user_id = decode_access_token(credentials.credentials)
-    if user_id is None:
+    payload = decode_access_token_payload(credentials.credentials)
+    if payload is None:
         raise error
-    user = repository.get(user_id)
+    user = repository.get(str(payload["sub"]))
     if user is None or not user.get("ativo", True):
+        raise error
+    if payload["sv"] != user.get("session_version", 0):
         raise error
     return user

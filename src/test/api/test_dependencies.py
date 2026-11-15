@@ -32,18 +32,31 @@ def test_repository_dependency_factories_use_injected_database():
 def test_current_user_accepts_valid_token_and_rejects_invalid_states(monkeypatch):
     credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="token")
     repository = MagicMock()
-    repository.get.return_value = {"id": "u1", "ativo": True}
-    monkeypatch.setattr(dependencies, "decode_access_token", lambda token: "u1")
+    repository.get.return_value = {"id": "u1", "ativo": True, "session_version": 2}
+    monkeypatch.setattr(
+        dependencies,
+        "decode_access_token_payload",
+        lambda token: {"sub": "u1", "sv": 2},
+    )
 
     assert dependencies.get_current_user(credentials, repository)["id"] == "u1"
 
-    for supplied_credentials, decoded, user in (
-        (None, "u1", {"id": "u1", "ativo": True}),
+    for supplied_credentials, payload, user in (
+        (None, {"sub": "u1", "sv": 2}, {"id": "u1", "ativo": True}),
         (credentials, None, {"id": "u1", "ativo": True}),
-        (credentials, "u1", None),
-        (credentials, "u1", {"id": "u1", "ativo": False}),
+        (credentials, {"sub": "u1", "sv": 2}, None),
+        (credentials, {"sub": "u1", "sv": 2}, {"id": "u1", "ativo": False}),
+        (
+            credentials,
+            {"sub": "u1", "sv": 1},
+            {"id": "u1", "ativo": True, "session_version": 2},
+        ),
     ):
-        monkeypatch.setattr(dependencies, "decode_access_token", lambda token, value=decoded: value)
+        monkeypatch.setattr(
+            dependencies,
+            "decode_access_token_payload",
+            lambda token, value=payload: value,
+        )
         repository.get.return_value = user
         with pytest.raises(HTTPException) as error:
             dependencies.get_current_user(supplied_credentials, repository)

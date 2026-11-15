@@ -1,10 +1,16 @@
 import re
 from typing import Any
 
-from pymongo import ASCENDING
+from pymongo import ASCENDING, ReturnDocument
 from pymongo.database import Database
 
-from src.app.repositories.base import CrudRepository, serialize_document
+from src.app.models.common import utc_now
+from src.app.repositories.base import (
+    CrudRepository,
+    mongo_ready,
+    object_id,
+    serialize_document,
+)
 
 
 class UserRepository(CrudRepository):
@@ -22,6 +28,22 @@ class UserRepository(CrudRepository):
     ) -> tuple[list[dict[str, Any]], int]:
         query = {"nome": {"$regex": re.escape(name), "$options": "i"}} if name else {}
         return self.paginate(query, page, page_size, [("nome", ASCENDING)])
+
+    def revoke_sessions(
+        self, user_id: str, changes: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None:
+        identifier = object_id(user_id)
+        if identifier is None:
+            return None
+        updated = self.collection.find_one_and_update(
+            {"_id": identifier},
+            {
+                "$set": mongo_ready({**(changes or {}), "updated_at": utc_now()}),
+                "$inc": {"session_version": 1},
+            },
+            return_document=ReturnDocument.AFTER,
+        )
+        return serialize_document(updated)
 
 
 def _repository() -> UserRepository:

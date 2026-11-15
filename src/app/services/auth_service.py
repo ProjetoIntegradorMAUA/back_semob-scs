@@ -18,19 +18,30 @@ def verify_password(password: str, password_digest: str) -> bool:
     return password_hash.verify(password, password_digest)
 
 
-def create_access_token(user_id: str, settings: Settings | None = None) -> str:
+def create_access_token(
+    user_id: str,
+    settings: Settings | None = None,
+    session_version: int = 0,
+) -> str:
     config = settings or get_settings()
     expires_at = datetime.now(timezone.utc) + timedelta(
         minutes=config.access_token_expire_minutes
     )
     return jwt.encode(
-        {"sub": user_id, "exp": expires_at, "iat": datetime.now(timezone.utc)},
+        {
+            "sub": user_id,
+            "exp": expires_at,
+            "iat": datetime.now(timezone.utc),
+            "sv": session_version,
+        },
         config.jwt_secret_key,
         algorithm=config.jwt_algorithm,
     )
 
 
-def decode_access_token(token: str, settings: Settings | None = None) -> str | None:
+def decode_access_token_payload(
+    token: str, settings: Settings | None = None
+) -> dict[str, Any] | None:
     config = settings or get_settings()
     try:
         payload: dict[str, Any] = jwt.decode(
@@ -41,7 +52,15 @@ def decode_access_token(token: str, settings: Settings | None = None) -> str | N
     except InvalidTokenError:
         return None
     subject = payload.get("sub")
-    return subject if isinstance(subject, str) else None
+    session_version = payload.get("sv", 0)
+    if not isinstance(subject, str) or not isinstance(session_version, int):
+        return None
+    return {**payload, "sv": session_version}
+
+
+def decode_access_token(token: str, settings: Settings | None = None) -> str | None:
+    payload = decode_access_token_payload(token, settings)
+    return str(payload["sub"]) if payload else None
 
 
 def authenticate_user(repository, email: str, password: str) -> dict | None:

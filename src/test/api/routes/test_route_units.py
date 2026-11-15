@@ -217,14 +217,15 @@ def test_user_and_auth_routes(monkeypatch):
         UserCreate(nome="Gestor", email="GESTOR@semob.com", senha="12345678"),
         repository,
     )
-    assert created["senha_hash"] == "hash"
-    assert user.list_users(repository, {}, name="ges")["meta"].total == 1
-    assert user.get_user(created["id"], repository, {})["id"] == created["id"]
+    assert repository.item["senha_hash"] == "hash"
+    assert "senha_hash" not in created.model_dump()
+    assert user.list_users(repository, {}, name="ges").meta.total == 1
+    assert user.get_user(created.id, repository, {}).id == created.id
     updated = user.update_user(
-        created["id"], UserUpdate(nome="Novo gestor"), repository, {}
+        created.id, UserUpdate(nome="Novo gestor"), repository, {}
     )
-    assert updated["nome"] == "Novo gestor"
-    assert user.delete_user(created["id"], repository, {}).status_code == 204
+    assert updated.nome == "Novo gestor"
+    assert user.delete_user(created.id, repository, {}).status_code == 204
     _assert_not_found(lambda: user.get_user("missing", repository, {}))
     _assert_not_found(
         lambda: user.update_user("missing", UserUpdate(nome="Outro"), repository, {})

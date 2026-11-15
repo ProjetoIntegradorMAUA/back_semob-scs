@@ -74,3 +74,25 @@ def test_legacy_repository_factory_uses_database_dependency(monkeypatch):
 
     assert isinstance(repository, user_repository.UserRepository)
     assert repository.collection is database.users
+
+
+def test_revoke_sessions_increments_version_and_applies_changes_atomically():
+    identifier = ObjectId()
+    database = MagicMock()
+    database.users.find_one_and_update.return_value = {
+        "_id": identifier,
+        "email": "gestor@example.com",
+        "session_version": 2,
+    }
+    repository = user_repository.UserRepository(database)
+
+    updated = repository.revoke_sessions(
+        str(identifier), {"senha_hash": "novo-hash"}
+    )
+    query, operation = database.users.find_one_and_update.call_args.args
+
+    assert updated["session_version"] == 2
+    assert query == {"_id": identifier}
+    assert operation["$inc"] == {"session_version": 1}
+    assert operation["$set"]["senha_hash"] == "novo-hash"
+    assert repository.revoke_sessions("id-invalido") is None

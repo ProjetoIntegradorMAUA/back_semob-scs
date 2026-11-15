@@ -6,7 +6,7 @@ from pymongo.errors import DuplicateKeyError
 from src.app.api.dependencies import get_current_user, get_user_repository
 from src.app.repositories.user_repository import UserRepository
 from src.app.schemas.common import PaginationMeta
-from src.app.schemas.user import UserCreate, UserResponse, UserUpdate
+from src.app.schemas.user import UserCreate, UserList, UserResponse, UserUpdate
 from src.app.services.auth_service import hash_password
 
 router = APIRouter(prefix="/users", tags=["Usuários"])
@@ -21,13 +21,14 @@ def create_user(
     data["email"] = str(user.email).lower()
     data["senha_hash"] = hash_password(user.senha)
     data["ativo"] = True
+    data["session_version"] = 0
     try:
-        return repository.create(data)
+        return UserResponse.from_document(repository.create(data))
     except DuplicateKeyError as error:
         raise HTTPException(status_code=409, detail="E-mail já cadastrado.") from error
 
 
-@router.get("")
+@router.get("", response_model=UserList)
 def list_users(
     repository: Annotated[UserRepository, Depends(get_user_repository)],
     _: Annotated[dict, Depends(get_current_user)],
@@ -36,7 +37,10 @@ def list_users(
     name: str | None = None,
 ):
     items, total = repository.list(page, page_size, name)
-    return {"items": items, "meta": PaginationMeta(page=page, page_size=page_size, total=total)}
+    return UserList(
+        items=[UserResponse.from_document(item) for item in items],
+        meta=PaginationMeta(page=page, page_size=page_size, total=total),
+    )
 
 
 @router.get("/{user_id}", response_model=UserResponse)
@@ -48,7 +52,7 @@ def get_user(
     user = repository.get(user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
-    return user
+    return UserResponse.from_document(user)
 
 
 @router.patch("/{user_id}", response_model=UserResponse)
@@ -67,7 +71,7 @@ def update_user(
         raise HTTPException(status_code=409, detail="E-mail já cadastrado.") from error
     if user is None:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
-    return user
+    return UserResponse.from_document(user)
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

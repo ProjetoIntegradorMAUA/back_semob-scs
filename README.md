@@ -88,6 +88,8 @@ O frontend pode consultar `GET /api/v1/auth/me` após restaurar um token para ob
 perfil atualizado do usuário sem armazenar nome, e-mail ou dados sensíveis localmente.
 Também pode alterar o nome com `PATCH /api/v1/auth/me` e a senha com
 `PUT /api/v1/auth/me/password`; a troca exige a senha atual e confirmação da nova.
+Trocar a senha ou executar `POST /api/v1/auth/logout-all` revoga imediatamente todos
+os tokens emitidos anteriormente para o usuário.
 
 ### Saúde e prontidão
 
