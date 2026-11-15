@@ -23,14 +23,7 @@ router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
 
 def _public_user(user: dict) -> UserResponse:
-    return UserResponse(
-        id=user["id"],
-        nome=user["nome"],
-        email=user["email"],
-        ativo=user.get("ativo", True),
-        created_at=user.get("created_at"),
-        updated_at=user.get("updated_at"),
-    )
+    return UserResponse.from_document(user)
 
 
 @router.get("/me", response_model=UserResponse)
@@ -62,11 +55,21 @@ def change_authenticated_user_password(
 ):
     if not verify_password(data.senha_atual, user["senha_hash"]):
         raise HTTPException(status_code=400, detail="Senha atual incorreta.")
-    updated = repository.update(
+    updated = repository.revoke_sessions(
         user["id"],
         {"senha_hash": hash_password(data.nova_senha)},
     )
     if updated is None:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/logout-all", status_code=status.HTTP_204_NO_CONTENT)
+def logout_all_sessions(
+    user: Annotated[dict, Depends(get_current_user)],
+    repository: Annotated[UserRepository, Depends(get_user_repository)],
+):
+    if repository.revoke_sessions(user["id"]) is None:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -85,6 +88,8 @@ def login(
 
     settings = get_settings()
     return TokenResponse(
-        access_token=create_access_token(user["id"], settings),
+        access_token=create_access_token(
+            user["id"], settings, user.get("session_version", 0)
+        ),
         expires_in=settings.access_token_expire_minutes * 60,
     )

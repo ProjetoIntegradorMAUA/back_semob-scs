@@ -7,6 +7,7 @@ from src.app.services.auth_service import (
     authenticate_user,
     create_access_token,
     decode_access_token,
+    decode_access_token_payload,
     hash_password,
     verify_password,
     verifica_senha_gera_jwt,
@@ -49,9 +50,10 @@ def test_access_token_round_trip_and_invalid_token():
         jwt_secret_key="uma-chave-de-teste-com-mais-de-trinta-e-dois-bytes",
         access_token_expire_minutes=10,
     )
-    token = create_access_token("user-123", settings)
+    token = create_access_token("user-123", settings, session_version=3)
 
     assert decode_access_token(token, settings) == "user-123"
+    assert decode_access_token_payload(token, settings)["sv"] == 3
     assert decode_access_token(f"{token}corrompido", settings) is None
 
 
@@ -66,6 +68,25 @@ def test_expired_token_is_rejected():
     )
 
     assert decode_access_token(token, settings) is None
+
+    invalid_version = jwt.encode(
+        {"sub": "user-123", "sv": "invalid"},
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+    invalid_subject = jwt.encode(
+        {"sub": 123, "sv": 0},
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+    legacy = jwt.encode(
+        {"sub": "legacy-user", "sv": 0},
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+    assert decode_access_token_payload(invalid_version, settings) is None
+    assert decode_access_token_payload(invalid_subject, settings) is None
+    assert decode_access_token_payload(legacy, settings)["sv"] == 0
 
 
 def test_legacy_auth_helper_returns_token_or_none(monkeypatch):

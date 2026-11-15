@@ -1,8 +1,10 @@
 from datetime import datetime
+from typing import Any, Mapping
 
 from pydantic import EmailStr, Field, model_validator
 
 from src.app.schemas.common import ApiSchema
+from src.app.schemas.common import PaginationMeta
 
 
 class UserCreate(ApiSchema):
@@ -30,6 +32,22 @@ class UserResponse(ApiSchema):
     ativo: bool = True
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+    @classmethod
+    def from_document(cls, user: Mapping[str, Any]):
+        return cls(
+            id=str(user["id"]),
+            nome=user["nome"],
+            email=user["email"],
+            ativo=user.get("ativo", True),
+            created_at=user.get("created_at"),
+            updated_at=user.get("updated_at"),
+        )
+
+
+class UserList(ApiSchema):
+    items: list[UserResponse]
+    meta: PaginationMeta
 
 
 class UserLogin(ApiSchema):

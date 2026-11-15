@@ -49,6 +49,13 @@ class Users:
         self.user.update(changes)
         return self.user
 
+    def revoke_sessions(self, user_id, changes=None):
+        if self.fail:
+            return None
+        self.user.update(changes or {})
+        self.user["session_version"] = self.user.get("session_version", 0) + 1
+        return self.user
+
 
 def test_authenticated_user_can_update_own_name_and_password(monkeypatch):
     user = {
@@ -77,13 +84,16 @@ def test_authenticated_user_can_update_own_name_and_password(monkeypatch):
                     "confirmacao_senha": "nova-senha-123",
                 },
             )
+            logout_all = client.post("/api/v1/auth/logout-all")
     finally:
         app.dependency_overrides.clear()
 
     assert profile.status_code == 200
     assert profile.json()["nome"] == "Novo Gestor"
     assert password.status_code == 204
+    assert logout_all.status_code == 204
     assert user["senha_hash"] == "hash:nova-senha-123"
+    assert user["session_version"] == 2
 
 
 def test_profile_changes_validate_credentials_and_missing_user(monkeypatch):
@@ -139,6 +149,7 @@ def test_profile_changes_validate_credentials_and_missing_user(monkeypatch):
                     "confirmacao_senha": "nova-senha-123",
                 },
             )
+            missing_logout = client.post("/api/v1/auth/logout-all")
     finally:
         app.dependency_overrides.clear()
 
@@ -147,3 +158,4 @@ def test_profile_changes_validate_credentials_and_missing_user(monkeypatch):
     assert same_password.status_code == 422
     assert missing_profile.status_code == 404
     assert missing_password.status_code == 404
+    assert missing_logout.status_code == 404

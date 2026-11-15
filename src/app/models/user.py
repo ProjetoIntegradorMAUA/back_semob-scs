@@ -8,3 +8,4 @@ class User(DocumentModel):
     email: EmailStr
     senha_hash: str
     ativo: bool = True
+    session_version: int = 0
