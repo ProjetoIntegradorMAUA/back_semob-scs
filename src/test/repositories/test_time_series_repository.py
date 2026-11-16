@@ -67,3 +67,48 @@ def test_list_and_find_range_apply_filters_and_serialize_documents():
     assert query["line_code"] == "01"
     assert len(ranged) == 2
     assert date_filter(None, None) == {}
+
+
+def test_coverage_reports_period_volume_and_last_update():
+    database = MagicMock()
+    collection = MagicMock()
+    database.__getitem__.return_value = collection
+    repository = Repository(database)
+    updated_at = datetime(2026, 8, 3, 12)
+    collection.aggregate.return_value = [
+        {
+            "_id": None,
+            "records": 3,
+            "start_date": datetime(2026, 8, 1),
+            "end_date": datetime(2026, 8, 3),
+            "last_updated": updated_at,
+        }
+    ]
+
+    result = repository.coverage({"line_code": None})
+
+    pipeline = collection.aggregate.call_args.args[0]
+    assert pipeline[0] == {"$match": {"line_code": None}}
+    assert result == {
+        "records": 3,
+        "start_date": datetime(2026, 8, 1),
+        "end_date": datetime(2026, 8, 3),
+        "last_updated": updated_at,
+    }
+
+
+def test_coverage_returns_empty_snapshot_when_dataset_has_no_records():
+    database = MagicMock()
+    collection = MagicMock()
+    database.__getitem__.return_value = collection
+    repository = Repository(database)
+    collection.aggregate.return_value = []
+
+    assert repository.coverage() == {
+        "records": 0,
+        "start_date": None,
+        "end_date": None,
+        "last_updated": None,
+    }
+    pipeline = collection.aggregate.call_args.args[0]
+    assert pipeline[0]["$group"]["records"] == {"$sum": 1}
