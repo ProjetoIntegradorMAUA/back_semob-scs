@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 from fastapi.testclient import TestClient
 
@@ -17,6 +17,14 @@ class Series:
 
     def find_range(self, start_date, end_date):
         return self.rows
+
+    def coverage(self):
+        return {
+            "records": len(self.rows),
+            "start_date": min(row["date"] for row in self.rows),
+            "end_date": max(row["date"] for row in self.rows),
+            "last_updated": datetime(2026, 8, 31, 12, tzinfo=timezone.utc),
+        }
 
 
 def _override():
@@ -74,3 +82,20 @@ def test_analytics_rejects_inverted_period():
         app.dependency_overrides.clear()
 
     assert all(response.status_code == 422 for response in responses)
+
+
+def test_dashboard_data_coverage_exposes_available_periods():
+    _override()
+    try:
+        with TestClient(app) as client:
+            response = client.get("/api/v1/dashboard/data-coverage")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["ready_for_dashboard"] is True
+    assert body["operations"]["records"] == 1
+    assert body["operations"]["start_date"] == "2026-08-01"
+    assert body["hourly_operations"]["end_date"] == "2026-08-01"
+    assert body["financials"]["last_updated"] == "2026-08-31T12:00:00Z"

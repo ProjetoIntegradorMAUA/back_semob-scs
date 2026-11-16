@@ -1,6 +1,8 @@
 from datetime import date, datetime
 from typing import Any
 
+from src.app.models.common import utc_now
+
 
 def _date(value: date | datetime) -> date:
     return value.date() if isinstance(value, datetime) else value
@@ -105,4 +107,27 @@ class DashboardService:
                 key=lambda row: row["completed_trips"],
                 reverse=True,
             )[:10],
+        }
+
+
+class DataCoverageService:
+    def __init__(self, operations, hourly_operations, passengers, financials):
+        self.operations = operations
+        self.hourly_operations = hourly_operations
+        self.passengers = passengers
+        self.financials = financials
+
+    def snapshot(self) -> dict[str, Any]:
+        datasets = {
+            "operations": self.operations.coverage(),
+            "hourly_operations": self.hourly_operations.coverage(),
+            "passengers": self.passengers.coverage(),
+            "financials": self.financials.coverage(),
+        }
+        return {
+            "generated_at": utc_now(),
+            "ready_for_dashboard": all(
+                dataset["records"] > 0 for dataset in datasets.values()
+            ),
+            **datasets,
         }

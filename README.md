@@ -77,6 +77,7 @@ Todas as rotas de negócio usam o prefixo `/api/v1`.
 | Financeiro | `/financials` | Vendas, utilização, transferências e saldo |
 | Alertas | `/alerts`, `POST /alerts/generate` | Ocorrências, acompanhamento e detecção automática de anomalias |
 | Dashboard | `GET /dashboard/overview` | KPIs, série diária e ranking de linhas |
+| Cobertura de dados | `GET /dashboard/data-coverage` | Períodos disponíveis, volume e última atualização |
 | Análises | `/analytics/operations`, `/passengers`, `/financials` | Contratos completos das telas analíticas |
 | Importação | `/imports/smart-report`, `/imports/smart-data`, `/imports/history` | Ingestão idempotente, simulação e auditoria dos lotes |
 | Preferências | `/preferences/me` | Período, tema e notificações do usuário autenticado |

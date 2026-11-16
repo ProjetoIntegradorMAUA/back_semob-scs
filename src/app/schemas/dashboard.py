@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from src.app.schemas.common import ApiSchema
 
@@ -40,3 +40,19 @@ class DashboardOverview(ApiSchema):
     totals: DashboardTotals
     daily: list[DailyDashboardPoint]
     top_lines: list[LineRanking]
+
+
+class DataSeriesCoverage(ApiSchema):
+    records: int
+    start_date: date | None = None
+    end_date: date | None = None
+    last_updated: datetime | None = None
+
+
+class DashboardDataCoverage(ApiSchema):
+    generated_at: datetime
+    ready_for_dashboard: bool
+    operations: DataSeriesCoverage
+    hourly_operations: DataSeriesCoverage
+    passengers: DataSeriesCoverage
+    financials: DataSeriesCoverage

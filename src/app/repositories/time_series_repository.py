@@ -55,6 +55,33 @@ class TimeSeriesRepository(CrudRepository):
             if item is not None
         ]
 
+    def coverage(
+        self, extra_query: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        pipeline: list[dict[str, Any]] = []
+        if extra_query:
+            pipeline.append({"$match": extra_query})
+        pipeline.append(
+            {
+                "$group": {
+                    "_id": None,
+                    "records": {"$sum": 1},
+                    "start_date": {"$min": "$date"},
+                    "end_date": {"$max": "$date"},
+                    "last_updated": {"$max": "$updated_at"},
+                }
+            }
+        )
+        result = list(self.collection.aggregate(pipeline))
+        if not result:
+            return {
+                "records": 0,
+                "start_date": None,
+                "end_date": None,
+                "last_updated": None,
+            }
+        return {key: value for key, value in result[0].items() if key != "_id"}
+
     def upsert_many(self, rows: list[dict[str, Any]]) -> int:
         if not rows:
             return 0
